@@ -1,0 +1,50 @@
+[package]
+name = "cosmic-viewer"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Bryan Hyland <bryan.hyland32@gmail.com>"]
+description = "An image viewer written for the COSMIC Desktop, usable with all DEs."
+repository = "https://codeberg.org/bhh32/cosmic-viewer"
+
+[dependencies]
+
+
+# Internationalization
+i18n-embed = { version = "0.16.0", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "0.10.0"
+rust-embed = "8.9.0"
+
+# Image processing
+fast_image_resize = { version = "5.4.0", features = ["image"] }
+image = { version = "0.25.9", features = ["png", "jpeg", "gif", "webp", "bmp", "tiff", "ico", "avif"] }
+#libheif-rs = { version = "2.5.2", features = ["image"] }
+
+# Async runtime
+tokio = { version = "1.48.0", features = ["rt-multi-thread", "sync", "fs"] }
+
+# Caching
+lru = "0.16.2"
+
+# Utils
+dirs = "6.0.0"
+once_cell = "1.21.3"
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.17"
+tracing = "0.1.43"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+
+# Libcosmic
+[dependencies.libcosmic]
+  git = "https://github.com/pop-os/libcosmic.git"
+  features = [
+    "tokio",
+    "winit",
+    "wgpu",
+    "a11y",
+  ]
+
+[profile.release]
+lto = "thin"
+opt-level = 3
+strip = true
