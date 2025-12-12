@@ -40,6 +40,7 @@ tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
     "winit",
     "wgpu",
     "a11y",
+    "rfd",
   ]
 
 [features]

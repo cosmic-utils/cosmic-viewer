@@ -1,4 +1,4 @@
-use cosmic::cosmic_config::{self, ConfigGet, ConfigSet, CosmicConfigEntry};
+use cosmic::cosmic_config::{self, Config, ConfigGet, ConfigSet, CosmicConfigEntry};
 use serde::{Deserialize, Serialize};
 
 pub const CONFIG_VERSION: u64 = 1;
@@ -111,7 +111,46 @@ impl CosmicConfigEntry for ViewerConfig {
         }
     }
 
-    fn update_keys(config: &cosmic_config::Config) -> Result<Self, cosmic_config::Error> {
-        todo!()
+    fn update_keys<T: AsRef<str>>(
+        &mut self,
+        config: &cosmic_config::Config,
+        changed_keys: &[T],
+    ) -> (Vec<cosmic_config::Error>, Vec<&'static str>) {
+        let mut errors = Vec::new();
+        let mut updated = Vec::new();
+
+        for key in changed_keys {
+            match key.as_ref() {
+                "default_zoom" => match config.get::<f32>("default_zoom") {
+                    Ok(val) => {
+                        self.default_zoom = val;
+                        updated.push("default_zoom");
+                    }
+                    Err(e) => errors.push(e),
+                },
+                "fit_to_window" => match config.get::<bool>("fit_to_window") {
+                    Ok(val) => {
+                        self.fit_to_window = val;
+                        updated.push("fit_to_window");
+                    }
+                    Err(e) => errors.push(e),
+                },
+                "show_hidden_files" => match config.get::<bool>("show_hidden_files") {
+                    Ok(val) => {
+                        self.show_hidden_files = val;
+                        updated.push("show_hidden_files");
+                    }
+                    Err(e) => errors.push(e),
+                },
+                _ => {}
+            }
+        }
+
+        (errors, updated)
     }
+}
+
+/// Get or create the config handler
+pub fn config() -> Result<Config, cosmic_config::Error> {
+    Config::new(APP_ID, CONFIG_VERSION)
 }

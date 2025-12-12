@@ -3,7 +3,10 @@
 use crate::{fl, image::ImageCache, message::Message, nav::NavState};
 use cosmic::{
     Element,
-    iced::{Alignment, ContentFit, Length},
+    iced::{
+        Alignment, ContentFit, Length,
+        alignment::{Horizontal, Vertical},
+    },
     theme,
     widget::{column, container, horizontal_space, icon, image, row, scrollable, text},
 };
@@ -95,23 +98,37 @@ impl SingleView {
                 let image_widget = if self.fit_to_window {
                     image(cached.handle.clone())
                         .content_fit(ContentFit::Contain)
-                        .width(Length::Fill)
                         .height(Length::Fill)
                 } else {
+                    let scaled_width = cached.width as f32 * self.zoom_level;
+                    let scaled_height = cached.height as f32 * self.zoom_level;
+
                     image(cached.handle.clone())
-                        .content_fit(ContentFit::None)
-                        .width(Length::Shrink)
-                        .height(Length::Shrink)
+                        .content_fit(ContentFit::Contain)
+                        .width(Length::Fixed(scaled_width))
+                        .height(Length::Fixed(scaled_height))
                 };
 
-                scrollable(
-                    container(image_widget)
-                        .center(Length::Fill)
-                        .padding(spacing.space_xxs),
-                )
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
+                if self.fit_to_window {
+                    row()
+                        .push(horizontal_space().width(Length::Fill))
+                        .push(image_widget)
+                        .push(horizontal_space().width(Length::Fill))
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_y(Vertical::Center)
+                        .padding(spacing.space_xxs)
+                        .into()
+                } else {
+                    scrollable(
+                        container(image_widget)
+                            .center(Length::Shrink)
+                            .padding(spacing.space_xxs),
+                    )
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into()
+                }
             } else {
                 container(
                     column()
@@ -156,6 +173,12 @@ impl SingleView {
             row()
         };
 
-        column().push(content).push(status_bar).into()
+        column()
+            .push(content)
+            .push(status_bar)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(Horizontal::Center)
+            .into()
     }
 }

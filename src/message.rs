@@ -1,5 +1,5 @@
 use cosmic::widget::image::Handle;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 /// Menu action type alias (re-exported from key_binds module)
 pub use crate::key_binds::MenuAction;
@@ -29,6 +29,8 @@ pub enum Message {
     OpenFileDialog,
     /// Open folder dialog
     OpenFolderDialog,
+    Cancelled,
+    OpenError(Arc<String>),
     /// Files selected from dialog
     FilesSelected(Vec<PathBuf>),
     /// Open a specific path
