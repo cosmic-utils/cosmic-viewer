@@ -18,7 +18,7 @@ rust-embed = "8.9.0"
 # Image processing
 fast_image_resize = { version = "5.4.0", features = ["image"] }
 image = { version = "0.25.9", features = ["png", "jpeg", "gif", "webp", "bmp", "tiff", "ico", "avif"] }
-#libheif-rs = { version = "2.5.2", features = ["image"] }
+libheif-rs = { version = "2.5.2", features = ["image"], optional = true }
 
 # Async runtime
 tokio = { version = "1.48.0", features = ["rt-multi-thread", "sync", "fs"] }
@@ -43,6 +43,10 @@ tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
     "wgpu",
     "a11y",
   ]
+
+[features]
+default = []
+heif = ["libheif-rs"]
 
 [profile.release]
 lto = "thin"
