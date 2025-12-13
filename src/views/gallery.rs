@@ -1,11 +1,18 @@
 //! Gallery view
 
-use crate::{fl, image::ImageCache, message::{Message, NavMessage, ViewMessage}, nav::NavState};
+use crate::{
+    fl,
+    image::ImageCache,
+    message::{Message, NavMessage, ViewMessage},
+    nav::NavState,
+};
 use cosmic::{
     Element,
     iced::{Alignment, ContentFit, Length},
     theme,
-    widget::{self, button, column, container, horizontal_space, icon, image, row, scrollable, text, tooltip},
+    widget::{
+        self, button, column, container, horizontal_space, icon, row, scrollable, text, tooltip,
+    },
 };
 use std::path::PathBuf;
 
@@ -52,28 +59,29 @@ impl GalleryView {
         path: &PathBuf,
         cache: &ImageCache,
         size: u32,
-    ) -> Element<'a, Message> {
+    ) -> Element<'static, Message> {
         let spacing = theme::active().cosmic().spacing;
         let is_selected = self.is_selected(index);
 
-        let filename = path
+        let file_name = path
             .file_name()
             .and_then(|name| name.to_str())
-            .unwrap_or("Unknown");
+            .unwrap_or("Unknown")
+            .to_string();
 
-        let content = Element<'_, Message> = if let Some(handle) = cache.get_thumbnail(path) {
-            image(handle)
+        let content: Element<'_, Message> = if let Some(handle) = cache.get_thumbnail(path) {
+            widget::image(handle)
                 .width(Length::Fixed(size as f32))
                 .height(Length::Fixed(size as f32))
                 .content_fit(ContentFit::Contain)
                 .into()
         } else {
-                container(icon::from_name("image-x-generic-symbolic").size(size / 2))
-                    .width(Length::Fixed(size as f32))
-                    .height(Length::Fixed(size as f32))
-                    .center(Length::Fill)
-                    .into()
-            };
+            container(icon::from_name("image-x-generic-symbolic").size((size / 2) as u16))
+                .width(Length::Fixed(size as f32))
+                .height(Length::Fixed(size as f32))
+                .center(Length::Fill)
+                .into()
+        };
 
         let cell = button::custom(content)
             .on_press(Message::Nav(NavMessage::GallerySelect(index)))
@@ -81,10 +89,10 @@ impl GalleryView {
             .class(if is_selected {
                 theme::Button::Suggested
             } else {
-                    them::Button::Image
+                theme::Button::Image
             });
 
-        tooltip(cell, filename, tooltip::Position::Bottom).into()
+        tooltip(cell, text(file_name), tooltip::Position::Bottom).into()
     }
 
     /// Render the gallery view
@@ -99,7 +107,7 @@ impl GalleryView {
 
         if images.is_empty() {
             return container(
-                widget::column()
+                column()
                     .push(icon::from_name("folder-pictures-symbolic").size(64))
                     .push(text(fl!("status-no-image")).size(16))
                     .push(text("Open a folder to view images").size(12))
@@ -110,14 +118,13 @@ impl GalleryView {
             .into();
         }
 
-        
         // Build grid
         let mut grid = column().spacing(spacing.space_xs);
         let mut current_row = row().spacing(spacing.space_xs);
         let mut col_count = 0;
 
         for (index, path) in images.iter().enumerate() {
-            let cell = self.thumbnail_cell(index, path, cache, size);
+            let cell = self.thumbnail_cell(index, path, cache, thumbnail_size);
             current_row = current_row.push(cell);
             col_count += 1;
 
@@ -132,14 +139,9 @@ impl GalleryView {
             grid = grid.push(current_row);
         }
 
-        
-        let content = scrollable(
-            container(grid)
-                .padding(spacing.space_s)
-                .width(Length::Fill),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill);
+        let content = scrollable(container(grid).padding(spacing.space_s).width(Length::Fill))
+            .width(Length::Fill)
+            .height(Length::Fill);
 
         // Status bar
         let status = row()
