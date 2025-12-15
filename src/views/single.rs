@@ -178,7 +178,7 @@ impl SingleView {
         let prev_zone = mouse_area(
             container(if self.show_prev_btn && has_prev {
                 container(
-                    button::icon(icon::from_name("got-previous-symbolic").size(32))
+                    button::icon(icon::from_name("go-previous-symbolic").size(32))
                         .on_press(Message::Nav(NavMessage::Prev))
                         .padding(spacing.space_s)
                         .class(theme::Button::Standard),
@@ -197,7 +197,7 @@ impl SingleView {
         let next_zone = mouse_area(
             container(if self.show_next_btn && has_next {
                 container(
-                    button::icon(icon::from_name("got-next-symbolic").size(32))
+                    button::icon(icon::from_name("go-next-symbolic").size(32))
                         .on_press(Message::Nav(NavMessage::Next))
                         .padding(spacing.space_s)
                         .class(theme::Button::Standard),
