@@ -10,6 +10,7 @@ pub mod views;
 pub mod widgets;
 
 use app::ImageViewer;
+use std::path::PathBuf;
 
 fn main() -> cosmic::iced::Result {
     tracing_subscriber::fmt()
@@ -25,5 +26,7 @@ fn main() -> cosmic::iced::Result {
             .min_height(300.0),
     );
 
-    cosmic::app::run::<ImageViewer>(settings, ())
+    let optional_image = std::env::args().nth(1).map(|img| PathBuf::from(img));
+
+    cosmic::app::run::<ImageViewer>(settings, optional_image)
 }
