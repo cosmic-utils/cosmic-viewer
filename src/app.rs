@@ -311,6 +311,21 @@ impl Application for ImageViewer {
                 }
                 NavMessage::DirectoryScanned { images, target } => {
                     self.nav.set_images(images, Some(&target));
+                    // Save last directory if enabled
+                    if self.config.remember_last_dir {
+                        // Get the directory
+                        let dir = if target.is_file() {
+                            target.parent().map(|parent| parent.to_path_buf())
+                        } else {
+                            Some(target.clone())
+                        };
+
+                        if let Some(dir) = dir {
+                            self.config.last_dir = Some(dir.to_string_lossy().to_string());
+                        }
+                    }
+
+                    // Auto-open modal if an image was selected to open the program
                     if self.nav.total() > 0 {
                         self.gallery_view.open_modal(self.nav.index());
                     }
