@@ -95,10 +95,6 @@ pub enum ViewMessage {
     ZoomSet(f32),
     /// Toggle fullscreen mode
     ToggleFullScreen,
-    /// Switch to gallery view
-    ShowGallery,
-    /// Switch to single image view
-    ShowSingle,
     /// Pan the image
     Pan { dx: f32, dy: f32 },
     /// Hover Previous button

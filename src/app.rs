@@ -7,7 +7,7 @@ use crate::{
     key_binds::{self, MenuAction},
     message::{ContextPage, ImageMessage, Message, NavMessage, ViewMessage},
     nav::{self, EXTENSIONS, NavState},
-    views::{GalleryView, SingleView, ViewMode},
+    views::{GalleryView, ImageViewState},
 };
 use cosmic::{
     Action, Application, ApplicationExt, Core, Element, Task,
@@ -32,8 +32,7 @@ pub struct ImageViewer {
     key_binds: HashMap<KeyBind, MenuAction>,
     nav: NavState,
     cache: ImageCache,
-    view_mode: ViewMode,
-    single_view: SingleView,
+    image_state: ImageViewState,
     gallery_view: GalleryView,
     context_page: Option<ContextPage>,
     is_loading: bool,
@@ -106,6 +105,36 @@ impl ImageViewer {
         Task::batch(tasks)
     }
 
+    /// Preload single view images
+    fn preload_images(&mut self) -> Task<Action<Message>> {
+        let mut tasks = Vec::new();
+
+        for path in self.nav.images().iter().cloned() {
+            if self.cache.get_full(&path).is_some() || self.cache.is_pending(&path) {
+                continue;
+            }
+
+            self.cache.set_pending(path.clone());
+
+            tasks.push(cosmic::task::future(async move {
+                match image::load_image(path.clone()).await {
+                    Ok(img) => Message::Image(ImageMessage::Loaded {
+                        path,
+                        handle: img.handle,
+                        width: img.width,
+                        height: img.height,
+                    }),
+                    Err(e) => Message::Image(ImageMessage::LoadFailed {
+                        path,
+                        error: e.to_string(),
+                    }),
+                }
+            }));
+        }
+
+        Task::batch(tasks)
+    }
+
     /// Scan directory and navigate to image
     fn scan_and_nav(&mut self, path: PathBuf) -> Task<Action<Message>> {
         let dir = nav::get_image_dir(&path);
@@ -139,7 +168,7 @@ impl ImageViewer {
 
 impl Application for ImageViewer {
     type Executor = cosmic::executor::Default;
-    type Flags = ();
+    type Flags = Option<PathBuf>;
     type Message = Message;
 
     const APP_ID: &'static str = Self::APP_ID;
@@ -152,8 +181,10 @@ impl Application for ImageViewer {
         &mut self.core
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Action<Self::Message>>) {
+    fn init(core: Core, flags: Self::Flags) -> (Self, Task<Action<Self::Message>>) {
         image::register_format_hooks();
+
+        let mut tasks = vec![];
 
         let (config, config_handler) = match crate::config::config() {
             Ok(handler) => {
@@ -173,15 +204,28 @@ impl Application for ImageViewer {
             key_binds: key_binds::init_key_binds(),
             nav: NavState::new(),
             cache: ImageCache::with_defaults(),
-            view_mode: ViewMode::Single,
-            single_view: SingleView::new(),
+            image_state: ImageViewState::new(),
             gallery_view: GalleryView::new(),
             context_page: None,
             is_loading: false,
         };
 
-        let task = app.set_window_title(fl!("app-title"), app.core.main_window_id().unwrap());
-        (app, task)
+        let startup_path = if let Some(path) = flags {
+            Some(path)
+        } else if app.config.remember_last_dir {
+            app.config.last_dir.as_ref().map(PathBuf::from)
+        } else {
+            None
+        };
+
+        let startup_path = startup_path.or_else(|| dirs::picture_dir());
+
+        tasks.push(app.set_window_title(fl!("app-title"), app.core.main_window_id().unwrap()));
+        if let Some(path) = startup_path {
+            tasks.push(app.scan_and_nav(path));
+        }
+
+        (app, Task::batch(tasks))
     }
 
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
@@ -189,17 +233,12 @@ impl Application for ImageViewer {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        match self.view_mode {
-            ViewMode::Single => self
-                .single_view
-                .view(&self.nav, &self.cache, self.is_loading),
-            ViewMode::Gallery => self.gallery_view.view(
-                &self.nav,
-                &self.cache,
-                self.config.thumbnail_size.pixels(),
-                &self.single_view,
-            ),
-        }
+        self.gallery_view.view(
+            &self.nav,
+            &self.cache,
+            self.config.thumbnail_size.pixels(),
+            &self.image_state,
+        )
     }
 
     fn update(&mut self, message: Message) -> Task<Action<Self::Message>> {
@@ -245,27 +284,40 @@ impl Application for ImageViewer {
             Message::Nav(nav_msg) => match nav_msg {
                 NavMessage::Next => {
                     self.nav.next();
+                    // Ensure the modal index for gallery view is updated appropriately
+                    self.gallery_view.modal_index = Some(self.nav.index());
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::Prev => {
                     self.nav.prev();
+                    // Ensure the modal index for gallery view is updated appropriately
+                    self.gallery_view.modal_index = Some(self.nav.index());
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::First => {
                     self.nav.first();
+                    self.gallery_view.modal_index = Some(self.nav.index());
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::Last => {
                     self.nav.last();
+                    self.gallery_view.modal_index = Some(self.nav.index());
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::GoTo(idx) => {
                     self.nav.go_to(idx);
+                    self.gallery_view.modal_index = Some(self.nav.index());
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::DirectoryScanned { images, target } => {
                     self.nav.set_images(images, Some(&target));
+                    if self.nav.total() > 0 {
+                        self.gallery_view.open_modal(self.nav.index());
+                    }
+
+                    tasks.push(self.load_thumbnails());
                     tasks.push(self.load_current_image());
+                    tasks.push(self.preload_images());
                 }
                 NavMessage::GallerySelect(idx) => {
                     self.gallery_view.open_modal(idx);
@@ -274,34 +326,29 @@ impl Application for ImageViewer {
                 }
             },
             Message::View(view_msg) => match view_msg {
-                ViewMessage::ZoomIn => self.single_view.zoom_in(),
-                ViewMessage::ZoomOut => self.single_view.zoom_out(),
-                ViewMessage::ZoomReset => self.single_view.zoom_reset(),
-                ViewMessage::ZoomFit => self.single_view.zoom_fit(),
+                ViewMessage::ZoomIn => self.image_state.zoom_in(),
+                ViewMessage::ZoomOut => self.image_state.zoom_out(),
+                ViewMessage::ZoomReset => self.image_state.zoom_reset(),
+                ViewMessage::ZoomFit => self.image_state.zoom_fit(),
                 ViewMessage::ZoomSet(level) => {
-                    self.single_view.zoom_level = level;
-                    self.single_view.fit_to_window = false;
+                    self.image_state.zoom_level = level;
+                    self.image_state.fit_to_window = false;
                 }
                 ViewMessage::ToggleFullScreen => {
                     tracing::info!("Toggle Fullscreen clicked!");
                 }
-                ViewMessage::ShowGallery => {
-                    self.view_mode = ViewMode::Gallery;
-                    tasks.push(self.load_thumbnails());
-                }
-                ViewMessage::ShowSingle => self.view_mode = ViewMode::Single,
-                ViewMessage::Pan { dx, dy } => self.single_view.pan(dx, dy),
+                ViewMessage::Pan { dx, dy } => self.image_state.pan(dx, dy),
                 ViewMessage::CloseModal => {
                     // Close the modal
                     self.gallery_view.close_modal();
                     // Reset the zoom level and fit_to_window if it was changed.
-                    if self.single_view.zoom_level != 1.0 {
-                        self.single_view.zoom_level = 1.0;
-                        self.single_view.fit_to_window = true;
+                    if self.image_state.zoom_level != 1.0 {
+                        self.image_state.zoom_level = 1.0;
+                        self.image_state.fit_to_window = true;
                     }
                 }
-                ViewMessage::HoverPrev(show) => self.single_view.show_prev_btn = show,
-                ViewMessage::HoverNext(show) => self.single_view.show_prev_btn = show,
+                ViewMessage::HoverPrev(show) => self.image_state.show_prev_btn = show,
+                ViewMessage::HoverNext(show) => self.image_state.show_prev_btn = show,
             },
             Message::KeyBind(action) => tasks.push(self.update(action.message())),
             Message::ToggleContextPage(page) => {

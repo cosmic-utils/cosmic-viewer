@@ -5,7 +5,7 @@ use crate::{
     image::{CachedImage, ImageCache},
     message::{Message, NavMessage, ViewMessage},
     nav::NavState,
-    views::SingleView,
+    views::ImageViewState,
 };
 use cosmic::{
     Element,
@@ -120,17 +120,17 @@ impl GalleryView {
     fn modal_content<'a>(
         &self,
         cached: &CachedImage,
-        single_view: &SingleView,
+        image_state: &ImageViewState,
     ) -> Element<'static, Message> {
         let spacing = theme::active().cosmic().spacing;
-        let image_widget = if single_view.fit_to_window {
+        let image_widget = if image_state.fit_to_window {
             image(cached.handle.clone())
                 .content_fit(ContentFit::Contain)
                 .width(Length::Fill)
                 .height(Length::Fill)
         } else {
-            let scaled_width = cached.width as f32 * single_view.zoom_level;
-            let scaled_height = cached.height as f32 * single_view.zoom_level;
+            let scaled_width = cached.width as f32 * image_state.zoom_level;
+            let scaled_height = cached.height as f32 * image_state.zoom_level;
 
             image(cached.handle.clone())
                 .content_fit(ContentFit::Fill)
@@ -138,7 +138,7 @@ impl GalleryView {
                 .height(Length::Fixed(scaled_height))
         };
 
-        let img_container = container(if single_view.fit_to_window {
+        let img_container = container(if image_state.fit_to_window {
             container(
                 // Column and row are used to center the image
                 // using vertical_space and horizontal_space widgets.
@@ -146,6 +146,15 @@ impl GalleryView {
                     .push(vertical_space().height(Length::Fill))
                     .push(
                         row()
+                            .push(
+                                column()
+                                    .push(vertical_space().height(Length::Fill))
+                                    .push(
+                                        button::icon(icon::from_name("go-previous-symbolic"))
+                                            .on_press(Message::Nav(NavMessage::Prev)),
+                                    )
+                                    .push(vertical_space().height(Length::Fill)),
+                            )
                             .push(horizontal_space().width(Length::Fill))
                             .push(
                                 container(image_widget)
@@ -153,7 +162,16 @@ impl GalleryView {
                                     .height(Length::Fill)
                                     .center(Length::Fill),
                             )
-                            .push(horizontal_space().width(Length::Fill)),
+                            .push(horizontal_space().width(Length::Fill))
+                            .push(
+                                column()
+                                    .push(vertical_space().height(Length::Fill))
+                                    .push(
+                                        button::icon(icon::from_name("go-next-symbolic"))
+                                            .on_press(Message::Nav(NavMessage::Next)),
+                                    )
+                                    .push(vertical_space().height(Length::Fill)),
+                            ),
                     )
                     .push(vertical_space().height(Length::Fill)),
             )
@@ -186,7 +204,7 @@ impl GalleryView {
                     .padding(spacing.space_xs),
             )
             .push(
-                button::text(format!("{}%", single_view.zoom_percent()))
+                button::text(format!("{}%", image_state.zoom_percent()))
                     .on_press(Message::View(ViewMessage::ZoomReset))
                     .padding(spacing.space_xs),
             )
@@ -196,7 +214,7 @@ impl GalleryView {
                     .padding(spacing.space_xs),
             )
             .push(
-                button::icon(icon::from_name("zom-fit-best-symbolic"))
+                button::icon(icon::from_name("zoom-fit-best-symbolic"))
                     .on_press(Message::View(ViewMessage::ZoomFit))
                     .padding(spacing.space_xs),
             )
@@ -245,7 +263,7 @@ impl GalleryView {
         nav: &NavState,
         cache: &ImageCache,
         thumbnail_size: u32,
-        single_view: &SingleView,
+        image_state: &ImageViewState,
     ) -> Element<'_, Message> {
         let spacing = theme::active().cosmic().spacing;
         let images = nav.images();
@@ -282,12 +300,6 @@ impl GalleryView {
         // Status bar
         let status = row()
             .push(text(format!("{} images", images.len())).size(12))
-            .push(horizontal_space())
-            .push(
-                button::icon(icon::from_name("view-restore-symbolic"))
-                    .on_press(Message::View(ViewMessage::ShowSingle))
-                    .padding(spacing.space_xxs),
-            )
             .padding([spacing.space_xxs, spacing.space_s])
             .align_y(Alignment::Center);
 
@@ -303,7 +315,7 @@ impl GalleryView {
             && let Some(path) = images.get(idx)
             && let Some(cached) = cache.get_full(path)
         {
-            let modal = self.modal_content(&cached, single_view);
+            let modal = self.modal_content(&cached, image_state);
 
             return popover(gallery)
                 .popup(modal)

@@ -21,7 +21,7 @@ use cosmic::{
 
 /// View state for single image display
 #[derive(Debug, Clone)]
-pub struct SingleView {
+pub struct ImageViewState {
     /// Current zoom level (1.0 = 100%)
     pub zoom_level: f32,
     /// Fit mode enabled
@@ -34,7 +34,7 @@ pub struct SingleView {
     pub show_next_btn: bool,
 }
 
-impl Default for SingleView {
+impl Default for ImageViewState {
     fn default() -> Self {
         Self {
             zoom_level: 1.0,
@@ -46,7 +46,7 @@ impl Default for SingleView {
     }
 }
 
-impl SingleView {
+impl ImageViewState {
     pub fn new() -> Self {
         Self::default()
     }

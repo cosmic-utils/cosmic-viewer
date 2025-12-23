@@ -48,9 +48,6 @@ fn view_menu(key_binds: &HashMap<menu::KeyBind, MenuAction>) -> Tree<Message> {
                 menu::Item::Button(fl!("menu-zoom-fit"), None, MenuAction::ZoomFit),
                 menu::Item::Divider,
                 menu::Item::Button(fl!("menu-fullscreen"), None, MenuAction::Fullscreen),
-                menu::Item::Divider,
-                menu::Item::Button(fl!("menu-single"), None, MenuAction::SingleView),
-                menu::Item::Button(fl!("menu-gallery"), None, MenuAction::GalleryView),
             ],
         ),
     )
