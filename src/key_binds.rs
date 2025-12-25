@@ -1,5 +1,5 @@
 //! Keyboard shortcuts and menu action definitions
-use crate::message::{ImageMessage, Message, NavMessage, ViewMessage};
+use crate::message::{ContextPage, Message, NavMessage, ViewMessage};
 use cosmic::{
     iced::keyboard::{Key, key::Named},
     widget::menu::{
@@ -37,7 +37,7 @@ impl MenuAction {
         match self {
             MenuAction::Open => Message::OpenFileDialog,
             MenuAction::OpenFolder => Message::OpenFolderDialog,
-            MenuAction::Close | MenuAction::Quit => Message::Image(ImageMessage::Clear),
+            MenuAction::Close | MenuAction::Quit => std::process::exit(0),
             MenuAction::ZoomIn => Message::View(ViewMessage::ZoomIn),
             MenuAction::ZoomOut => Message::View(ViewMessage::ZoomOut),
             MenuAction::ZoomReset => Message::View(ViewMessage::ZoomReset),
@@ -48,13 +48,9 @@ impl MenuAction {
             MenuAction::First => Message::Nav(NavMessage::First),
             MenuAction::Last => Message::Nav(NavMessage::Last),
             MenuAction::CloseModal => Message::View(ViewMessage::CloseModal),
-            MenuAction::About => Message::ToggleContextPage(crate::message::ContextPage::About),
-            MenuAction::Settings => {
-                Message::ToggleContextPage(crate::message::ContextPage::Settings)
-            }
-            MenuAction::ImageInfo => {
-                Message::ToggleContextPage(crate::message::ContextPage::ImageInfo)
-            }
+            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
+            MenuAction::Settings => Message::ToggleContextPage(ContextPage::Settings),
+            MenuAction::ImageInfo => Message::ToggleContextPage(ContextPage::ImageInfo),
         }
     }
 }
@@ -92,6 +88,14 @@ pub fn init_key_binds() -> HashMap<KeyBind, MenuAction> {
         KeyBind {
             modifiers: vec![Modifier::Super],
             key: Key::Character("q".into()),
+        },
+        MenuAction::Quit,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Alt],
+            key: Key::Named(Named::F4),
         },
         MenuAction::Quit,
     );
