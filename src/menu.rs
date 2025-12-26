@@ -11,6 +11,7 @@ use std::{collections::HashMap, sync::LazyLock};
 static MENU_ID: LazyLock<cosmic::widget::Id> =
     LazyLock::new(|| cosmic::widget::Id::new("responsive-menu"));
 
+/// Returns a ResponsiveMenuBar as an Element
 pub fn menu_bar<'a>(core: &Core, key_binds: &HashMap<KeyBind, MenuAction>) -> Element<'a, Message> {
     responsive_menu_bar()
         .item_height(ItemHeight::Dynamic(40))

@@ -9,8 +9,22 @@ A fast, native image viewer, built with the COSMIC desktop environment in mind, 
 - Keyboard Navigation: Navigate images without taking your hands off the keyboard.
 - Native Desktop Environment Integration: Follows your desktop theme and conventions.
 
+## Dependencies
+- Rust 2024 Edition [installation](https://rust-lang.org/install)
+- libxkbcommon-dev
+- just
+
 ## Screenshots
-TODO: Create screenshots and add them here.
+![](./screenshots/about.png)
+![](./screenshots/gallery_view.png)
+![](./screenshots/responsive_gallery_1.png)
+![](./screenshots/responsive_gallery_2.png)
+![](./screenshots/responsive_gallery_3.png)
+![](./screenshots/zoomed_in_scrollbars.png)
+![](./screenshots/zoomed_out.png)
+![](./screenshots/open_directory.png)
+![](./screenshots/view_menu.png)
+![](./screenshots/navigate_menu.png)
 
 ## Installation
 
@@ -51,11 +65,13 @@ cosmic-viewer ~/Pictures/wallpapers
 cosmic-viewer ~/Pictures/wallpapers/superman_wallpaper.png
 ```
 
+If you have it installed, using the `just install` command, you use it just like you would any other image viewer application. If it's set as the default for opening images, it will start with an image opened from the file explorer application.
+
 ## Keyboard Shortcuts
 | Key | Action |
 |-----|--------|
 | ← / → | Previous/Next image |
-| Ctrl + '+' / Ctrl + '-' | Zoom In/Out (single image modal open) |
+| Ctrl + '=' / Ctrl + '-' | Zoom In/Out (single image modal open) |
 | Ctrl + F | Fit in Window (single image modal) open |
 | Ctrl + 0 | Zoom to 100% (single image modal only, not the same as `Fit in Window`) |
 | ESC | Close Single View Modal |
@@ -79,6 +95,6 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 MIT
 
 ## Known Bugs/Issues
-- Single image modal blocks the use of the close button in the top right corner of the application window.
+- ~~Single image modal blocks the use of the rest of the UI.~~
 - While in gallery, no image selected, using the left and right arrow keys opens the single image modal to cycle the images.
 

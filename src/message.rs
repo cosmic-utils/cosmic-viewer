@@ -1,4 +1,4 @@
-use cosmic::{iced::window::Id, widget::image::Handle};
+use cosmic::widget::image::Handle;
 use std::{path::PathBuf, sync::Arc};
 
 /// Menu action type alias (re-exported from key_binds module)

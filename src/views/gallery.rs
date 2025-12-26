@@ -10,11 +10,14 @@ use crate::{
 use cosmic::{
     Element,
     iced::{Alignment, ContentFit, Length},
-    iced_widget::scrollable::{Direction, Scrollbar},
+    iced_widget::{
+        scrollable::{Direction, Scrollbar},
+        stack,
+    },
     theme,
     widget::{
-        self, button, column, container, flex_row, horizontal_space, icon, image, popover,
-        responsive, row, scrollable, text, tooltip,
+        self, Space, button, column, container, flex_row, horizontal_space, icon, image,
+        mouse_area,responsive, row, scrollable, text, tooltip,
     },
 };
 use std::path::PathBuf;
@@ -349,12 +352,18 @@ impl GalleryView {
         {
             let modal = self.modal_content(&cached, image_state);
 
-            return popover(gallery)
-                .popup(modal)
-                .modal(true)
-                .position(popover::Position::Center)
-                .on_close(Message::View(ViewMessage::CloseModal))
-                .into();
+            // Use mouse-area to close the modal when the backdrop is clicked.
+            let backdrop = mouse_area(
+                container(Space::new(Length::Fill, Length::Fill))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .class(theme::Container::Card),
+            )
+            .on_press(Message::View(ViewMessage::CloseModal));
+
+            // Create a stack as a modal; this avoids the modal blocking other
+            // UI elements.
+            return stack![gallery, backdrop, modal].into();
         }
 
         gallery
