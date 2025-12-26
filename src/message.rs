@@ -41,6 +41,8 @@ pub enum Message {
     ConfigChanged,
     /// Window was resized
     WindowResized { width: f32, height: f32 },
+    /// Quit the application
+    Quit,
 }
 
 #[derive(Debug, Clone)]

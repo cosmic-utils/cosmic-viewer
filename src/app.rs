@@ -346,8 +346,8 @@ impl Application for ImageViewer {
                         }
                     }
 
-                    // Open modal if started with an image
-                    if self.nav.total() > 0 {
+                    // Open modal only if a specific image file was requested
+                    if target.is_file() && self.nav.total() > 0 {
                         self.gallery_view.open_modal(self.nav.index());
                     }
 
@@ -465,6 +465,9 @@ impl Application for ImageViewer {
                 {
                     self.image_state.calculate_fit_zoom(cached.width, cached.height);
                 }
+            }
+            Message::Quit => {
+                std::process::exit(0);
             }
         }
 

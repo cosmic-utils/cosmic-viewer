@@ -37,7 +37,7 @@ impl MenuAction {
         match self {
             MenuAction::Open => Message::OpenFileDialog,
             MenuAction::OpenFolder => Message::OpenFolderDialog,
-            MenuAction::Close | MenuAction::Quit => std::process::exit(0),
+            MenuAction::Close | MenuAction::Quit => Message::Quit,
             MenuAction::ZoomIn => Message::View(ViewMessage::ZoomIn),
             MenuAction::ZoomOut => Message::View(ViewMessage::ZoomOut),
             MenuAction::ZoomReset => Message::View(ViewMessage::ZoomReset),
