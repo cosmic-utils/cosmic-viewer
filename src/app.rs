@@ -17,8 +17,9 @@ use cosmic::{
     dialog::file_chooser::{self, FileFilter, open::Dialog},
     iced::keyboard::{Key, Modifiers},
     task::future,
+    theme,
     widget::{
-        column,
+        Id, button, column,
         menu::key_bind::{KeyBind, Modifier},
         text,
     },
@@ -321,16 +322,53 @@ impl Application for ImageViewer {
             },
             Message::Nav(nav_msg) => match nav_msg {
                 NavMessage::Next => {
-                    self.nav.go_next();
-                    self.image_state.zoom_fit(); // Reset to fit mode for new image
-                    self.update_fit_zoom();
-                    tasks.push(self.load_current_image());
+                    if self.nav.is_selected() {
+                        // Modal open: navigate images
+                        self.nav.go_next();
+                        self.image_state.zoom_fit(); // Reset to fit mode for new image
+                        self.update_fit_zoom();
+                        tasks.push(self.load_current_image());
+                    } else {
+                        // Gallery view: move focus right
+                        let total = self.nav.total();
+                        if total > 0 {
+                            let new_idx = match self.gallery_view.focused_index {
+                                Some(idx) if idx + 1 < total => idx + 1,
+                                Some(idx) => idx,
+                                None => 0,
+                            };
+
+                            self.gallery_view.focused_index = Some(new_idx);
+
+                            // Focus the thumbnail button
+                            let button_id = Id::new(format!("thumbnail-{new_idx}"));
+                            return button::focus(button_id);
+                        }
+                    }
                 }
                 NavMessage::Prev => {
-                    self.nav.go_prev();
-                    self.image_state.zoom_fit(); // Reset to fit mode for new image
-                    self.update_fit_zoom();
-                    tasks.push(self.load_current_image());
+                    if self.nav.is_selected() {
+                        self.nav.go_prev();
+                        self.image_state.zoom_fit(); // Reset to fit mode for new image
+                        self.update_fit_zoom();
+                        tasks.push(self.load_current_image());
+                    } else {
+                        // Gallery view: move focus left
+                        let total = self.nav.total();
+                        if total > 0 {
+                            let new_idx = match self.gallery_view.focused_index {
+                                Some(idx) if idx > 0 => idx - 1,
+                                Some(idx) => idx,
+                                None => 0,
+                            };
+
+                            self.gallery_view.focused_index = Some(new_idx);
+
+                            // Focus the thumbnail button
+                            let button_id = Id::new(format!("thumbnail-{new_idx}"));
+                            return button::focus(button_id);
+                        }
+                    }
                 }
                 NavMessage::First => {
                     self.nav.first();
@@ -442,6 +480,52 @@ impl Application for ImageViewer {
                         self.image_state.fit_to_window = true;
                     }
                 }
+                ViewMessage::FocusUp => {
+                    let total = self.nav.total();
+                    if total == 0 {
+                        return Task::none();
+                    }
+
+                    let cols = self.gallery_view.cols;
+                    let new_idx = match self.gallery_view.focused_index {
+                        Some(idx) if idx >= cols => idx - cols,
+                        Some(idx) => idx, // Already on the top row
+                        None => 0,        // Init to first image
+                    };
+
+                    self.gallery_view.focused_index = Some(new_idx);
+
+                    // Focus thumbnail button
+                    let button_id = Id::new(format!("thumbnail-{new_idx}"));
+                    return button::focus(button_id);
+                }
+                ViewMessage::FocusDown => {
+                    let total = self.nav.total();
+                    if total == 0 {
+                        return Task::none();
+                    }
+
+                    let cols = self.gallery_view.cols;
+                    let new_idx = match self.gallery_view.focused_index {
+                        Some(idx) if idx + cols < total => idx + cols,
+                        Some(idx) => idx, // Already on the bottom row
+                        None => 0,        // Init to first image
+                    };
+
+                    self.gallery_view.focused_index = Some(new_idx);
+
+                    // Focus thumbnail button
+                    let button_id = Id::new(format!("thumbnail-{new_idx}"));
+                    return button::focus(button_id);
+                }
+                ViewMessage::SelectFocused => {
+                    if let Some(idx) = self.gallery_view.focused_index {
+                        self.nav.select(idx);
+                        self.image_state.zoom_fit();
+                        self.update_fit_zoom();
+                        tasks.push(self.load_current_image());
+                    }
+                }
             },
             Message::KeyBind(action) => tasks.push(self.update(action.message())),
             Message::Surface(action) => {
@@ -550,6 +634,17 @@ impl Application for ImageViewer {
             }
             Message::WindowResized { width, height } => {
                 self.image_state.set_window_size(width, height);
+
+                // Update gallery column count for keyboard nav
+                let spacing = theme::active().cosmic().spacing;
+                let thumbnail_size = self.config.thumbnail_size.pixels();
+                let padding = (spacing.space_xxs * 2) as u32; // button padding (left + right)
+                let col_spacing = spacing.space_xs as u32;
+                let cell_width = thumbnail_size + padding;
+                let available = (width as u32).saturating_sub(padding);
+                self.gallery_view.cols =
+                    ((available + col_spacing) / (cell_width + col_spacing)).max(1) as usize;
+
                 // Update fit_zoom for current image
                 if let Some(path) = self.nav.current()
                     && let Some(cached) = self.cache.get_full(path)

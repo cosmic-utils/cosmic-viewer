@@ -88,9 +88,7 @@ pub enum NavMessage {
         target: PathBuf,
     },
     /// Refresh the opened directory
-    DirectoryRefreshed {
-        images: Vec<PathBuf>,
-    },
+    DirectoryRefreshed { images: Vec<PathBuf> },
     /// Select an image in the gallery
     GallerySelect(usize),
 }
@@ -109,4 +107,10 @@ pub enum ViewMessage {
     ToggleFullScreen,
     /// Close Gallery single view modal
     CloseModal,
+    /// Gallery - Focus on the thumbnail above currently focused
+    FocusUp,
+    /// Gallery - Focus on the thumbnail below currently focused
+    FocusDown,
+    /// Gallery - Open the modal for the currently focused thumbnail
+    SelectFocused,
 }

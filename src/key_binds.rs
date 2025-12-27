@@ -29,6 +29,9 @@ pub enum MenuAction {
     About,
     Settings,
     ImageInfo,
+    FocusUp,
+    FocusDown,
+    SelectFocused,
 }
 
 impl MenuAction {
@@ -51,6 +54,9 @@ impl MenuAction {
             MenuAction::About => Message::ToggleContextPage(ContextPage::About),
             MenuAction::Settings => Message::ToggleContextPage(ContextPage::Settings),
             MenuAction::ImageInfo => Message::ToggleContextPage(ContextPage::ImageInfo),
+            MenuAction::FocusUp => Message::View(ViewMessage::FocusUp),
+            MenuAction::FocusDown => Message::View(ViewMessage::FocusDown),
+            MenuAction::SelectFocused => Message::View(ViewMessage::SelectFocused),
         }
     }
 }
@@ -155,6 +161,30 @@ pub fn init_key_binds() -> HashMap<KeyBind, MenuAction> {
             key: Key::Named(Named::ArrowRight),
         },
         MenuAction::Next,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![],
+            key: Key::Named(Named::ArrowUp),
+        },
+        MenuAction::FocusUp,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![],
+            key: Key::Named(Named::ArrowDown),
+        },
+        MenuAction::FocusDown,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![],
+            key: Key::Named(Named::Enter),
+        },
+        MenuAction::SelectFocused,
     );
 
     binds.insert(

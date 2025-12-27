@@ -16,7 +16,7 @@ use cosmic::{
     },
     theme,
     widget::{
-        self, Space, button, column, container, flex_row, horizontal_space, icon, image,
+        self, Id, Space, button, column, container, flex_row, horizontal_space, icon, image,
         mouse_area, responsive, row, scrollable, text, tooltip,
     },
 };
@@ -29,6 +29,8 @@ pub struct GalleryView {
     pub selected: Vec<usize>,
     /// Number of cols in the grid
     pub cols: usize,
+    /// Currently focused thumbnail index
+    pub focused_index: Option<usize>,
 }
 
 impl GalleryView {
@@ -36,6 +38,7 @@ impl GalleryView {
         Self {
             selected: Vec::new(),
             cols: 4,
+            focused_index: None,
         }
     }
 
@@ -89,7 +92,11 @@ impl GalleryView {
                 .into()
         };
 
+        let button_id = Id::new(format!("thumbnail-{index}"));
+
         let cell = button::custom(content)
+            .id(button_id)
+            .selected(self.focused_index == Some(index))
             .on_press(Message::Nav(NavMessage::GallerySelect(index)))
             .padding(spacing.space_xxs)
             .class(if is_selected {
