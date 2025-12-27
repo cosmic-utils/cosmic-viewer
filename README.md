@@ -71,6 +71,7 @@ If you have it installed, using the `just install` command, you use it just like
 | Key | Action |
 |-----|--------|
 | ← / → | Previous/Next image |
+| ↑ / ↓ | Gallery - Focus image above/below currently focused |
 | Ctrl + '=' / Ctrl + '-' | Zoom In/Out (single image modal open) |
 | Ctrl + F | Fit in Window (single image modal) open |
 | Ctrl + 0 | Zoom to 100% (single image modal only, not the same as `Fit in Window`) |
@@ -88,6 +89,72 @@ just run                # Run in release (can test better)
 cargo fmt               # Format code
 cargo clippy            # Run linter
 
+## Roadmap
+
+The goal is to build a fast, private image manager that helps organize photo libraries through tags, locations, and smart detection without shipping photos to someone else's cloud. All ML-based features run locally using embedded models. No cloud AI, no third-party LLMs, nothing leaves your computer.
+
+### In Progress
+- [ ] Fullscreen mode
+- [ ] Settings page UI
+- [ ] Theme switching
+
+### Core Features
+- [ ] Slideshow with play/pause and timer controls
+- [ ] Delete image with confirmation
+- [ ] Copy image to clipboard
+- [ ] Sort by name, date, size
+- [ ] Filename search/filter
+- [ ] Zoom slider
+- [ ] Animated GIF playback
+- [ ] Drag and drop to open folders/images
+- [ ] Recent folders menu
+- [ ] Set as wallpaper
+
+### Editing
+- [ ] Rotate 90/270 degrees
+- [ ] Flip horizontal/vertical
+- [ ] Crop
+- [ ] Save and Save As
+
+### Annotations
+- [ ] Freehand drawing
+- [ ] Highlighter
+- [ ] Arrows and shapes
+- [ ] Text labels
+- [ ] Blur/redact regions
+
+### Organization
+- [ ] Manual tagging
+- [ ] Boolean tag queries (AND/OR/NOT)
+- [ ] Smart collections (saved filters)
+- [ ] Duplicate detection (SHA256 + perceptual hash)
+- [ ] Example-based auto-tagging using local embedded ML (faces, pets, objects)
+- [ ] Color search by dominant color
+
+### Location
+- [ ] Map view with clustered pins
+- [ ] Location heat map
+- [ ] Click-to-filter by map region
+- [ ] Timeline view
+
+### Metadata and Export
+- [ ] EXIF viewer/editor
+- [ ] Export presets
+- [ ] Batch format conversion
+
+### Privacy
+- [ ] GPS metadata viewer
+- [ ] Strip location data from images
+- [ ] Privacy audit for sensitive metadata
+
+### Completed
+- [x] Gallery keyboard navigation (arrow keys, Enter to select)
+- [x] Visual focus indicator on thumbnails
+- [x] Directory watching for external file changes
+- [x] Zoom controls with fit-to-window
+- [x] Thumbnail caching with configurable sizes
+- [x] Modal single-image view with navigation
+
 ## Contributing
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
@@ -96,5 +163,5 @@ MIT
 
 ## Known Bugs/Issues
 - ~~Single image modal blocks the use of the rest of the UI.~~
-- While in gallery, no image selected, using the left and right arrow keys opens the single image modal to cycle the images.
+- ~~While in gallery, no image selected, using the left and right arrow keys opens the single image modal to cycle the images.~~
 - ~~Deleting an image, currently selected or not, while an image is selected doesn't always refresh the directory.~~
