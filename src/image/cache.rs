@@ -23,6 +23,7 @@ pub struct ImageCache {
     full_images: Arc<Mutex<LruCache<PathBuf, CachedImage>>>,
     thumbnails: Arc<Mutex<LruCache<PathBuf, Handle>>>,
     pending: Arc<Mutex<HashSet<PathBuf>>>,
+    pending_thumbnails: Arc<Mutex<HashSet<PathBuf>>>,
 }
 
 impl ImageCache {
@@ -36,12 +37,13 @@ impl ImageCache {
                 NonZeroUsize::new(thumbnail_capacity.max(1)).unwrap(),
             ))),
             pending: Arc::new(Mutex::new(HashSet::new())),
+            pending_thumbnails: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
     /// Create with default capacities
     pub fn with_defaults() -> Self {
-        Self::new(20, 100)
+        Self::new(20, 1000)
     }
 
     /// Resize the full image cache capacity
@@ -76,7 +78,30 @@ impl ImageCache {
     /// Insert a thumbnail
     pub fn insert_thumbnail(&self, path: PathBuf, handle: Handle) {
         if let Ok(mut cache) = self.thumbnails.lock() {
-            cache.put(path, handle);
+            cache.put(path.clone(), handle);
+        }
+        self.clear_pending_thumbnail(&path);
+    }
+
+    /// Check if a thumbnail is pending load
+    pub fn is_thumbnail_pending(&self, path: &PathBuf) -> bool {
+        self.pending_thumbnails
+            .lock()
+            .map(|set| set.contains(path))
+            .unwrap_or(false)
+    }
+
+    /// Mark a thumbnail as pending load
+    pub fn set_thumbnail_pending(&self, path: PathBuf) {
+        if let Ok(mut set) = self.pending_thumbnails.lock() {
+            set.insert(path);
+        }
+    }
+
+    /// Clear pending status for a thumbnail
+    pub fn clear_pending_thumbnail(&self, path: &PathBuf) {
+        if let Ok(mut set) = self.pending_thumbnails.lock() {
+            set.remove(path);
         }
     }
 
@@ -107,6 +132,9 @@ impl ImageCache {
         if let Ok(mut cache) = self.thumbnails.lock() {
             cache.clear();
         }
+        if let Ok(mut set) = self.pending_thumbnails.lock() {
+            set.clear();
+        }
     }
 
     /// Clear all caches
@@ -120,6 +148,10 @@ impl ImageCache {
         }
 
         if let Ok(mut set) = self.pending.lock() {
+            set.clear();
+        }
+
+        if let Ok(mut set) = self.pending_thumbnails.lock() {
             set.clear();
         }
     }

@@ -123,6 +123,8 @@ pub enum ViewMessage {
     StopSlideshow,
     /// Toggle slideshow on/off
     ToggleSlideshow,
+    /// Click event for image editing
+    ImageEditEvent,
 }
 
 #[derive(Debug, Clone)]

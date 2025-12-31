@@ -263,17 +263,20 @@ impl GalleryView {
 
         // Outer padding lets gallery peek through
         container(
-            container(
-                column()
-                    .push(header)
-                    .push(content_row)
-                    .push(footer)
-                    .width(Length::Fill)
-                    .height(Length::Fill),
+            mouse_area(
+                container(
+                    column()
+                        .push(header)
+                        .push(content_row)
+                        .push(footer)
+                        .width(Length::Fill)
+                        .height(Length::Fill),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .class(theme::Container::Dialog),
             )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .class(theme::Container::Dialog),
+            .on_press(Message::View(ViewMessage::ImageEditEvent)),
         )
         .padding([60, 80])
         .width(Length::Fill)

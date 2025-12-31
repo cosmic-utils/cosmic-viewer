@@ -83,15 +83,39 @@ impl ImageViewer {
         }
     }
 
-    /// Load the thumbnails for gallery view
+    /// Count how many thumbnails still need to be loaded
+    fn thumbnails_remaining(&self) -> usize {
+        self.nav
+            .images()
+            .iter()
+            .filter(|path| {
+                self.cache.get_thumbnail(path).is_none()
+                    && !self.cache.is_thumbnail_pending(path)
+            })
+            .count()
+    }
+
+    /// Load the thumbnails for gallery view (chunked to avoid overwhelming the system)
     fn load_thumbnails(&mut self) -> Task<Action<Message>> {
         let thumbnail_size = self.config.thumbnail_size.pixels();
         let mut tasks = Vec::new();
 
+        const BATCH_SIZE: usize = 100;
+
         for path in self.nav.images().iter().cloned() {
-            if self.cache.get_thumbnail(&path).is_some() {
+            // Skip if already cached or already loading
+            if self.cache.get_thumbnail(&path).is_some()
+                || self.cache.is_thumbnail_pending(&path)
+            {
                 continue;
             }
+
+            if tasks.len() >= BATCH_SIZE {
+                break;
+            }
+
+            // Mark as pending before spawning task
+            self.cache.set_thumbnail_pending(path.clone());
 
             tasks.push(cosmic::task::future(async move {
                 match image::load_thumbnail(path.clone(), thumbnail_size).await {
@@ -113,7 +137,8 @@ impl ImageViewer {
         Task::batch(tasks)
     }
 
-    /// Preload single view images
+    /// Preload single view images (currently unused, kept for future smart preloading)
+    #[allow(dead_code)]
     fn preload_images(&mut self) -> Task<Action<Message>> {
         let mut tasks = Vec::new();
 
@@ -317,10 +342,19 @@ impl Application for ImageViewer {
                 ImageMessage::LoadFailed { path, error } => {
                     self.is_loading = false;
                     self.cache.clear_pending(&path);
+                    self.cache.clear_pending_thumbnail(&path);
                     tracing::error!("Failed to load {}: {error}", path.display());
+                    // Continue loading more thumbnails if there are more to load
+                    if self.thumbnails_remaining() > 0 {
+                        tasks.push(self.load_thumbnails());
+                    }
                 }
                 ImageMessage::ThumbnailReady { path, handle } => {
                     self.cache.insert_thumbnail(path, handle);
+                    // Continue loading more thumbnails if there are more to load
+                    if self.thumbnails_remaining() > 0 {
+                        tasks.push(self.load_thumbnails());
+                    }
                 }
                 ImageMessage::Clear => {
                     self.nav = NavState::new();
@@ -431,7 +465,7 @@ impl Application for ImageViewer {
 
                     tasks.push(self.load_thumbnails());
                     tasks.push(self.load_current_image());
-                    tasks.push(self.preload_images());
+                    // Don't preload all images upfront - load on demand instead
                 }
                 NavMessage::DirectoryRefreshed { images } => {
                     let was_selected = self.nav.is_selected();
@@ -471,7 +505,6 @@ impl Application for ImageViewer {
                     } else {
                         // Background update: refresh thumbnails
                         tasks.push(self.load_thumbnails());
-                        tasks.push(self.preload_images());
                     }
                 }
             },
@@ -571,6 +604,9 @@ impl Application for ImageViewer {
                 ViewMessage::StopSlideshow => self.is_slideshow_active = false,
                 ViewMessage::ToggleSlideshow => {
                     self.is_slideshow_active = !self.is_slideshow_active
+                }
+                ViewMessage::ImageEditEvent => {
+                    // TODO: Add the image edit events
                 }
             },
             Message::Settings(msg) => {
@@ -737,7 +773,6 @@ impl Application for ImageViewer {
                     if let Some(path) = self.nav.go_next().cloned() {
                         self.update_fit_zoom();
                         tasks.push(self.load_image(path.clone()));
-                        tasks.push(self.preload_images());
                     }
                 }
             }
