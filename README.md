@@ -147,6 +147,9 @@ The goal is to build a fast, private image manager that helps organize photo lib
 
 ### Completed
 - [x] Gallery keyboard navigation (arrow keys, Enter to select)
+- [x] Fix gallery scrolling to follow focus
+- [x] Refine scroll logic (smart scrolling) and fix geometry bugs
+- [x] Focus first image on load (without opening modal)
 - [x] Visual focus indicator on thumbnails
 - [x] Directory watching for external file changes
 - [x] Zoom controls with fit-to-window
@@ -163,7 +166,8 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 MIT
 
 ## Known Bugs/Issues
-- Slideshow skips the first image due to starting before single image modal can popup.
+- ~~Slideshow skips the first image due to starting before single image modal can popup.~~
 - ~~Single image modal blocks the use of the rest of the UI.~~
 - ~~While in gallery, no image selected, using the left and right arrow keys opens the single image modal to cycle the images.~~
 - ~~Deleting an image externally, currently selected or not, while any image is selected doesn't always refresh the directory.~~
+- ~~Keyboard navigation in gallery mode diagnonal navigation and no scrolling.~~

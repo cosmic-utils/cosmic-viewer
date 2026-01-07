@@ -125,6 +125,8 @@ pub enum ViewMessage {
     ToggleSlideshow,
     /// Click event for image editing
     ImageEditEvent,
+    /// Gallery scroll update
+    GalleryScroll(cosmic::iced::widget::scrollable::Viewport),
 }
 
 #[derive(Debug, Clone)]

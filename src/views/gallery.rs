@@ -31,14 +31,19 @@ pub struct GalleryView {
     pub cols: usize,
     /// Currently focused thumbnail index
     pub focused_index: Option<usize>,
+    /// Current viewport of the gallery scrollable
+    pub viewport: Option<cosmic::iced::widget::scrollable::Viewport>,
 }
 
 impl GalleryView {
+    pub const SCROLL_ID: &'static str = "gallery-scroll";
+
     pub fn new() -> Self {
         Self {
             selected: Vec::new(),
             cols: 4,
             focused_index: None,
+            viewport: None,
         }
     }
 
@@ -321,6 +326,8 @@ impl GalleryView {
             .row_spacing(spacing.space_xs);
 
         let content = scrollable(container(grid).padding(spacing.space_s).width(Length::Fill))
+            .id(Id::new(Self::SCROLL_ID))
+            .on_scroll(|vp| Message::View(ViewMessage::GalleryScroll(vp)))
             .width(Length::Fill)
             .height(Length::Fill);
 

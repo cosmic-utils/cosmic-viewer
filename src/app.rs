@@ -19,7 +19,7 @@ use cosmic::{
         keyboard::{Key, Modifiers},
         window,
     },
-    iced_widget::toggler,
+    iced_widget::{scrollable, toggler},
     task::future,
     theme,
     widget::{
@@ -89,8 +89,7 @@ impl ImageViewer {
             .images()
             .iter()
             .filter(|path| {
-                self.cache.get_thumbnail(path).is_none()
-                    && !self.cache.is_thumbnail_pending(path)
+                self.cache.get_thumbnail(path).is_none() && !self.cache.is_thumbnail_pending(path)
             })
             .count()
     }
@@ -104,9 +103,7 @@ impl ImageViewer {
 
         for path in self.nav.images().iter().cloned() {
             // Skip if already cached or already loading
-            if self.cache.get_thumbnail(&path).is_some()
-                || self.cache.is_thumbnail_pending(&path)
-            {
+            if self.cache.get_thumbnail(&path).is_some() || self.cache.is_thumbnail_pending(&path) {
                 continue;
             }
 
@@ -166,6 +163,72 @@ impl ImageViewer {
         }
 
         Task::batch(tasks)
+    }
+
+    /// Snap gallery scroll to the row containing the index
+    fn snap_to_thumbnail(&self, index: usize) -> Task<Message> {
+        let cols = self.gallery_view.cols;
+        if cols == 0 {
+            return Task::none();
+        }
+
+        let Some(viewport) = self.gallery_view.viewport else {
+            // Fallback to relative snap if no viewport yet (e.g. initial load)
+            let row = index / cols;
+            let total = self.nav.total();
+            let total_rows = (total + cols - 1) / cols;
+
+            if total_rows <= 1 {
+                return Task::none();
+            }
+
+            let y = row as f32 / (total_rows - 1) as f32;
+
+            return scrollable::snap_to(
+                Id::new(GalleryView::SCROLL_ID),
+                scrollable::RelativeOffset { x: 0.0, y },
+            );
+        };
+
+        let row = index / cols;
+        let spacing = theme::active().cosmic().spacing;
+        let thumbnail_size = self.config.thumbnail_size.pixels();
+
+        // Gallery layout calculations
+        let padding_top = spacing.space_s as f32;
+        let row_spacing = spacing.space_xs as f32;
+        // Account for button padding (space_xxs) around content
+        let cell_padding = spacing.space_xxs as f32 * 2.0;
+        let row_height = thumbnail_size as f32 + cell_padding;
+
+        let item_top = padding_top + (row as f32) * (row_height + row_spacing);
+        let item_bottom = item_top + row_height;
+
+        let view_top = viewport.absolute_offset().y;
+        let view_height = viewport.bounds().height;
+        let view_bottom = view_top + view_height;
+
+        if item_top < view_top {
+            scrollable::scroll_to(
+                Id::new(GalleryView::SCROLL_ID),
+                scrollable::AbsoluteOffset {
+                    x: 0.0,
+                    y: item_top - padding_top,
+                },
+            )
+        } else if item_bottom > view_bottom {
+            // Scroll so bottom is visible, adding a small buffer
+            let target_y = item_bottom - view_height + row_spacing;
+            scrollable::scroll_to(
+                Id::new(GalleryView::SCROLL_ID),
+                scrollable::AbsoluteOffset {
+                    x: 0.0,
+                    y: target_y,
+                },
+            )
+        } else {
+            Task::none()
+        }
     }
 
     /// Recalculate fit_zoom for the current image
@@ -385,7 +448,11 @@ impl Application for ImageViewer {
 
                             // Focus the thumbnail button
                             let button_id = Id::new(format!("thumbnail-{new_idx}"));
-                            return button::focus(button_id);
+                            return Task::batch(vec![
+                                button::focus(button_id).map(|m: Message| Action::from(m)),
+                                self.snap_to_thumbnail(new_idx)
+                                    .map(|m: Message| Action::from(m)),
+                            ]);
                         }
                     }
                 }
@@ -410,7 +477,11 @@ impl Application for ImageViewer {
 
                             // Focus the thumbnail button
                             let button_id = Id::new(format!("thumbnail-{new_idx}"));
-                            return button::focus(button_id);
+                            return Task::batch(vec![
+                                button::focus(button_id).map(|m: Message| Action::from(m)),
+                                self.snap_to_thumbnail(new_idx)
+                                    .map(|m: Message| Action::from(m)),
+                            ]);
                         }
                     }
                 }
@@ -436,7 +507,6 @@ impl Application for ImageViewer {
                     tasks.push(self.load_current_image());
                 }
                 NavMessage::GallerySelect(idx) => {
-                    self.is_slideshow_active = false;
                     self.nav.select(idx);
                     self.image_state.zoom_fit();
                     self.update_fit_zoom();
@@ -461,6 +531,10 @@ impl Application for ImageViewer {
                     // Open modal only if a specific image file was requested
                     if target.is_file() && self.nav.total() > 0 {
                         self.nav.select(self.nav.index().unwrap_or(0));
+                    } else if self.nav.total() > 0 {
+                        // Focus first image in gallery
+                        self.gallery_view.focused_index = Some(0);
+                        tasks.push(self.snap_to_thumbnail(0).map(|m: Message| Action::from(m)));
                     }
 
                     tasks.push(self.load_thumbnails());
@@ -561,7 +635,11 @@ impl Application for ImageViewer {
 
                     // Focus thumbnail button
                     let button_id = Id::new(format!("thumbnail-{new_idx}"));
-                    return button::focus(button_id);
+                    return Task::batch(vec![
+                        button::focus(button_id).map(|m: Message| Action::from(m)),
+                        self.snap_to_thumbnail(new_idx)
+                            .map(|m: Message| Action::from(m)),
+                    ]);
                 }
                 ViewMessage::FocusDown => {
                     let total = self.nav.total();
@@ -580,7 +658,11 @@ impl Application for ImageViewer {
 
                     // Focus thumbnail button
                     let button_id = Id::new(format!("thumbnail-{new_idx}"));
-                    return button::focus(button_id);
+                    return Task::batch(vec![
+                        button::focus(button_id).map(|m: Message| Action::from(m)),
+                        self.snap_to_thumbnail(new_idx)
+                            .map(|m: Message| Action::from(m)),
+                    ]);
                 }
                 ViewMessage::SelectFocused => {
                     if let Some(idx) = self.gallery_view.focused_index {
@@ -603,7 +685,14 @@ impl Application for ImageViewer {
                 }
                 ViewMessage::StopSlideshow => self.is_slideshow_active = false,
                 ViewMessage::ToggleSlideshow => {
-                    self.is_slideshow_active = !self.is_slideshow_active
+                    if self.is_slideshow_active {
+                        tasks.push(self.update(Message::View(ViewMessage::StopSlideshow)));
+                    } else {
+                        tasks.push(self.update(Message::View(ViewMessage::StartSlideshow)));
+                    }
+                }
+                ViewMessage::GalleryScroll(viewport) => {
+                    self.gallery_view.viewport = Some(viewport);
                 }
                 ViewMessage::ImageEditEvent => {
                     // TODO: Add the image edit events
@@ -622,7 +711,7 @@ impl Application for ImageViewer {
                     }
                     SettingsMessage::ShowHiddenFiles(show) => {
                         self.config.show_hidden_files = show;
-                        // Reload the current directory with the new setting
+                        // Reload the current directory with the setting
                         tasks.push(self.reload_image_list());
                     }
                     SettingsMessage::SlideshowInterval(interval) => {
