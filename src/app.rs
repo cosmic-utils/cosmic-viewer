@@ -843,16 +843,6 @@ impl Application for ImageViewer {
             Message::WindowResized { width, height } => {
                 self.image_state.set_window_size(width, height);
 
-                // Update gallery column count for keyboard nav
-                let spacing = theme::active().cosmic().spacing;
-                let thumbnail_size = self.config.thumbnail_size.pixels();
-                let padding = (spacing.space_xxs * 2) as u32; // button padding (left + right)
-                let col_spacing = spacing.space_xs as u32;
-                let cell_width = thumbnail_size + padding;
-                let available = (width as u32).saturating_sub(padding);
-                self.gallery_view.cols =
-                    ((available + col_spacing) / (cell_width + col_spacing)).max(1) as usize;
-
                 // Update fit_zoom for current image
                 if let Some(path) = self.nav.current()
                     && let Some(cached) = self.cache.get_full(path)
