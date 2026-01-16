@@ -1395,7 +1395,72 @@ async fn set_wallpaper_cosmic_on(
     std::fs::write(&config_path, content)
         .map_err(|e| format!("Failed to write config file: {}", e))?;
 
+    // Add to COSMIC Settings' custom-images list so it shows up in the wallpaper picker
+    add_to_cosmic_settings_custom_images(path)?;
+
     Ok(())
+}
+
+/// Add an image to COSMIC Settings' custom-images list
+/// This ensures the image appears in COSMIC Settings -> Desktop -> Wallpaper
+fn add_to_cosmic_settings_custom_images(path: &std::path::Path) -> Result<(), String> {
+    let config_dir = dirs::config_dir()
+        .ok_or("Could not find config directory")?
+        .join("cosmic/com.system76.CosmicSettings.Wallpaper/v1");
+
+    std::fs::create_dir_all(&config_dir)
+        .map_err(|e| format!("Failed to create config directory: {}", e))?;
+
+    let custom_images_path = config_dir.join("custom-images");
+
+    // Read existing custom images
+    let mut custom_images: Vec<PathBuf> = std::fs::read_to_string(&custom_images_path)
+        .ok()
+        .and_then(|content| parse_path_list(&content))
+        .unwrap_or_default();
+
+    // Add this path if not already present
+    let path_buf = path.to_path_buf();
+    if !custom_images.contains(&path_buf) {
+        custom_images.push(path_buf);
+
+        // Write back in RON format
+        let content = format!(
+            "[\n    {},\n]",
+            custom_images
+                .iter()
+                .map(|p| format!("\"{}\"", p.display()))
+                .collect::<Vec<_>>()
+                .join(",\n    ")
+        );
+        std::fs::write(&custom_images_path, content)
+            .map_err(|e| format!("Failed to write custom-images: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// Parse a RON list of paths
+fn parse_path_list(content: &str) -> Option<Vec<PathBuf>> {
+    let trimmed = content.trim();
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        let inner = &trimmed[1..trimmed.len() - 1];
+        Some(
+            inner
+                .split(',')
+                .filter_map(|s| {
+                    let s = s.trim().trim_matches('"');
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(PathBuf::from(s))
+                    }
+                })
+                .collect(),
+        )
+    } else {
+        None
+    }
 }
 
 /// Update the backgrounds list file to include an output
