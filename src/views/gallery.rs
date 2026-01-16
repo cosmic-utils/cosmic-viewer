@@ -6,6 +6,7 @@ use crate::{
     message::{Message, NavMessage, ViewMessage},
     nav::NavState,
     views::ImageViewState,
+    widgets::flex_grid,
 };
 use cosmic::{
     Element,
@@ -16,8 +17,8 @@ use cosmic::{
     },
     theme,
     widget::{
-        self, Id, Space, button, column, container, flex_row, horizontal_space, icon, image,
-        mouse_area, responsive, row, scrollable, text, tooltip,
+        self, Id, Space, button, column, container, horizontal_space, icon, image, mouse_area,
+        responsive, row, scrollable, text, tooltip,
     },
 };
 use std::path::PathBuf;
@@ -321,9 +322,11 @@ impl GalleryView {
             cells.push(cell);
         }
 
-        let grid = flex_row(cells)
-            .column_spacing(spacing.space_xs)
-            .row_spacing(spacing.space_xs);
+        let item_width = thumbnail_size as f32 + (spacing.space_xxs * 2) as f32;
+
+        let grid = flex_grid(cells)
+            .item_width(item_width)
+            .on_columns_changed(|cols| Message::View(ViewMessage::GalleryColumnsChanged(cols)));
 
         let content = scrollable(container(grid).padding(spacing.space_s).width(Length::Fill))
             .id(Id::new(Self::SCROLL_ID))

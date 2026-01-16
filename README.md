@@ -94,11 +94,11 @@ cargo clippy            # Run linter
 The goal is to build a fast, private image manager that helps organize photo libraries through tags, locations, and smart detection without shipping photos to someone else's cloud. All ML-based features run locally using embedded models. No cloud AI, no third-party LLMs, nothing leaves your computer.
 
 ### In Progress
-- [ ] Theme switching
+- [ ] Set as wallpaper
+- [ ] Delete image with confirmation
 
 ### Core Features
 - [ ] Slideshow with play/pause and timer controls
-- [ ] Delete image with confirmation
 - [ ] Copy image to clipboard
 - [ ] Sort by name, date, size
 - [ ] Filename search/filter
@@ -106,7 +106,6 @@ The goal is to build a fast, private image manager that helps organize photo lib
 - [ ] Animated GIF playback
 - [ ] Drag and drop to open folders/images
 - [ ] Recent folders menu
-- [ ] Set as wallpaper
 
 ### Editing
 - [ ] Rotate 90/270 degrees
@@ -146,6 +145,8 @@ The goal is to build a fast, private image manager that helps organize photo lib
 - [ ] Privacy audit for sensitive metadata
 
 ### Completed
+- [x] Custom Flex Grid Widget
+- [x] Theme switching
 - [x] Gallery keyboard navigation (arrow keys, Enter to select)
 - [x] Fix gallery scrolling to follow focus
 - [x] Refine scroll logic (smart scrolling) and fix geometry bugs

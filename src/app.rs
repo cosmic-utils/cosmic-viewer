@@ -699,6 +699,7 @@ impl Application for ImageViewer {
                 ViewMessage::GalleryScroll(viewport) => {
                     self.gallery_view.viewport = Some(viewport);
                 }
+                ViewMessage::GalleryColumnsChanged(cols) => self.gallery_view.cols = cols,
                 ViewMessage::ImageEditEvent => {
                     // TODO: Add the image edit events
                 }

@@ -127,6 +127,8 @@ pub enum ViewMessage {
     ImageEditEvent,
     /// Gallery scroll update
     GalleryScroll(cosmic::iced::widget::scrollable::Viewport),
+    /// Let gallery columns know of a resize event
+    GalleryColumnsChanged(usize),
 }
 
 #[derive(Debug, Clone)]

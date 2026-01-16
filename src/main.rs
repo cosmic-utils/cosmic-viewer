@@ -8,6 +8,7 @@ pub mod message;
 pub mod nav;
 pub mod views;
 pub mod watcher;
+pub mod widgets;
 
 use app::ImageViewer;
 use std::path::PathBuf;
