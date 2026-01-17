@@ -23,6 +23,17 @@ menu-slideshow-start = Start Slideshow
 menu-slideshow-stop = Stop Slideshow
 menu-gallery = Gallery View
 
+# Menu - Edit
+menu-edit = Edit
+menu-rotate-90 = Rotate 90°
+menu-rotate-180 = Rotate 180°
+menu-flip-horizontal = Flip Horizontal
+menu-flip-vertical = Flip Vertical
+menu-crop = Crop
+menu-save = Save
+menu-save-as = Save As...
+menu-undo = Undo
+
 # Menu - Navigate
 menu-nav = Navigate
 menu-next = Next Image
@@ -79,10 +90,18 @@ status-no-image = No image loaded
 status-image-count = Image { $current } of { $total }
 status-zoom-level = Zoom: { $percent }%
 
+# Edit Status
+edit-modified = Modified
+edit-saved = Saved successfully
+edit-save-failed = Failed to save image
+edit-unsaved-changes = Unsaved changes
+
 # Errors
 error-load-failed = Failed to load image
 error-format-unsupported = Unsupported image format
 error-file-not-found = File not found
+error-save-failed = Failed to save image
+error-invalid-crop = Invalid crop region
 
 # Dialog
 dialog-open-title = Open Image
@@ -98,6 +117,10 @@ delete-dialog-title = Delete Image
 delete-trash = Move to Trash
 delete-permanent = Delete Permanently
 delete-cancel = Cancel
+
+# Save Dialog
+save-dialog-title = Save Image As
+save-dialog-filter = Images
 
 # About
 about-repo = Repository

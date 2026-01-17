@@ -61,6 +61,12 @@ impl ImageCache {
         self.clear_pending(&path);
     }
 
+    pub fn remove_full(&self, path: &PathBuf) {
+        if let Ok(mut cache) = self.full_images.lock() {
+            cache.pop(path);
+        }
+    }
+
     pub fn get_thumbnail(&self, path: &PathBuf) -> Option<Handle> {
         self.thumbnails.lock().ok()?.get(path).cloned()
     }
@@ -70,6 +76,12 @@ impl ImageCache {
             cache.put(path.clone(), handle);
         }
         self.clear_pending_thumbnail(&path);
+    }
+
+    pub fn remove_thumbnail(&self, path: &PathBuf) {
+        if let Ok(mut cache) = self.thumbnails.lock() {
+            cache.pop(path);
+        }
     }
 
     pub fn is_thumbnail_pending(&self, path: &PathBuf) -> bool {

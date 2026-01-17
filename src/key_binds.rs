@@ -1,4 +1,4 @@
-use crate::message::{ContextPage, Message, NavMessage, ViewMessage};
+use crate::message::{ContextPage, EditMessage, Message, NavMessage, ViewMessage};
 use cosmic::{
     iced::keyboard::{Key, key::Named},
     widget::menu::{
@@ -33,6 +33,13 @@ pub enum MenuAction {
     ToggleSlideshow,
     SetWallpaper,
     DeleteImage,
+    Rotate90,
+    Rotate180,
+    FlipHorizontal,
+    FlipVertical,
+    Save,
+    SaveAs,
+    Undo,
 }
 
 impl MenuAction {
@@ -60,6 +67,13 @@ impl MenuAction {
             MenuAction::ToggleSlideshow => Message::View(ViewMessage::ToggleSlideshow),
             MenuAction::SetWallpaper => Message::SetWallpaper,
             MenuAction::DeleteImage => Message::DeleteImage,
+            MenuAction::Rotate90 => Message::Edit(EditMessage::Rotate90),
+            MenuAction::Rotate180 => Message::Edit(EditMessage::Rotate180),
+            MenuAction::FlipHorizontal => Message::Edit(EditMessage::FlipHorizontal),
+            MenuAction::FlipVertical => Message::Edit(EditMessage::FlipVertical),
+            MenuAction::Save => Message::Edit(EditMessage::Save),
+            MenuAction::SaveAs => Message::Edit(EditMessage::SaveAs),
+            MenuAction::Undo => Message::Edit(EditMessage::Undo),
         }
     }
 }
@@ -246,6 +260,46 @@ pub fn init_key_binds() -> HashMap<KeyBind, MenuAction> {
             key: Key::Named(Named::Delete),
         },
         MenuAction::DeleteImage,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Ctrl],
+            key: Key::Character("r".into()),
+        },
+        MenuAction::Rotate90,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Shift],
+            key: Key::Character("r".into()),
+        },
+        MenuAction::Rotate180,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Ctrl],
+            key: Key::Character("s".into()),
+        },
+        MenuAction::Save,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Shift],
+            key: Key::Character("s".into()),
+        },
+        MenuAction::SaveAs,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Ctrl],
+            key: Key::Character("z".into()),
+        },
+        MenuAction::Undo,
     );
 
     binds

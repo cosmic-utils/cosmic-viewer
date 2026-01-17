@@ -15,6 +15,8 @@ pub fn menu_bar<'a>(
     core: &Core,
     key_binds: &HashMap<KeyBind, MenuAction>,
     is_slideshow_active: bool,
+    _has_image: bool,
+    _is_modified: bool,
 ) -> Element<'a, Message> {
     responsive_menu_bar()
         .item_height(ItemHeight::Dynamic(40))
@@ -42,6 +44,21 @@ pub fn menu_bar<'a>(
                         menu::Item::Button(fl!("menu-settings"), None, MenuAction::Settings),
                         menu::Item::Divider,
                         menu::Item::Button(fl!("menu-quit"), None, MenuAction::Quit),
+                    ],
+                ),
+                (
+                    fl!("menu-edit"),
+                    vec![
+                        menu::Item::Button(fl!("menu-rotate-90"), None, MenuAction::Rotate90),
+                        menu::Item::Button(fl!("menu-rotate-180"), None, MenuAction::Rotate180),
+                        menu::Item::Divider,
+                        menu::Item::Button(fl!("menu-flip-horizontal"), None, MenuAction::FlipHorizontal),
+                        menu::Item::Button(fl!("menu-flip-vertical"), None, MenuAction::FlipVertical),
+                        menu::Item::Divider,
+                        menu::Item::Button(fl!("menu-undo"), None, MenuAction::Undo),
+                        menu::Item::Divider,
+                        menu::Item::Button(fl!("menu-save"), None, MenuAction::Save),
+                        menu::Item::Button(fl!("menu-save-as"), None, MenuAction::SaveAs),
                     ],
                 ),
                 (

@@ -1,5 +1,6 @@
 pub mod app;
 pub mod config;
+pub mod edit;
 pub mod image;
 pub mod key_binds;
 pub mod localize;

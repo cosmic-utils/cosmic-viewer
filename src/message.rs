@@ -27,6 +27,7 @@ pub enum Message {
     Image(ImageMessage),
     Nav(NavMessage),
     View(ViewMessage),
+    Edit(EditMessage),
     Settings(SettingsMessage),
     KeyBind(MenuAction),
     ToggleContextPage(ContextPage),
@@ -127,4 +128,19 @@ pub enum SettingsMessage {
     CacheSize(usize),
     RememberLastDir(bool),
     WallpaperBehavior(crate::config::WallpaperBehavior),
+}
+
+#[derive(Debug, Clone)]
+pub enum EditMessage {
+    Rotate90,
+    Rotate180,
+    FlipHorizontal,
+    FlipVertical,
+    StartCrop,
+    CancelCrop,
+    ApplyCrop,
+    Save,
+    SaveAs,
+    SaveComplete(Result<PathBuf, String>),
+    Undo,
 }

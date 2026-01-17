@@ -21,6 +21,17 @@ menu-slideshow-start = Starta bildspel
 menu-slideshow-stop = Avsluta bildspel
 menu-gallery = Gallerivy
 
+# Meny - Redigera
+menu-edit = Redigera
+menu-rotate-90 = Rotera 90°
+menu-rotate-180 = Rotera 180°
+menu-flip-horizontal = Vänd horisontellt
+menu-flip-vertical = Vänd vertikalt
+menu-crop = Beskär
+menu-save = Spara
+menu-save-as = Spara som...
+menu-undo = Ångra
+
 # Menu - Navigera
 menu-nav = Navigera
 menu-next = Nästa bild
@@ -63,14 +74,26 @@ status-no-image = Ingen bild laddad
 status-image-count = Bild { $current } av { $total }
 status-zoom-level = Zoom: { $percent }%
 
+# Redigera status
+edit-modified = Ändrad
+edit-saved = Sparad framgångsrikt
+edit-save-failed = Misslyckades med att spara bild
+edit-unsaved-changes = Osparade ändringar
+
 # Fel
 error-load-failed = Misslyckades med att ladda bild
 error-format-unsupported = Bildformat som inte stöds
 error-file-not-found = Fil hittades inte
+error-save-failed = Misslyckades med att spara bild
+error-invalid-crop = Ogiltigt beskärningsområde
 
 # Dialogruta
 dialog-open-title = Öppna bild
 dialog-open-folder-title = Öppna mapp
+
+# Spara dialogruta
+save-dialog-title = Spara bild som
+save-dialog-filter = Bilder
 
 # Om
 about-repo = Arkiv

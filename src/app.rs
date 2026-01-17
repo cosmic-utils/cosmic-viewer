@@ -2,16 +2,19 @@
 
 use crate::{
     config::{AppTheme, ThumbnailSize, ViewerConfig, WallpaperBehavior},
+    edit::{EditState, Transform},
     fl,
     image::{self, CachedImage, ImageCache},
     key_binds::{self, MenuAction},
+    menu::menu_bar,
     message::{
-        ContextPage, DeleteAction, ImageMessage, Message, NavMessage, SettingsMessage, ViewMessage,
+        ContextPage, DeleteAction, EditMessage, ImageMessage, Message, NavMessage, SettingsMessage, ViewMessage,
     },
     nav::{self, EXTENSIONS, NavState},
     views::{GalleryView, ImageViewState},
     watcher,
 };
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 use ashpd::{
     desktop::wallpaper::{SetOn, WallpaperRequest},
     url::Url,
@@ -33,7 +36,6 @@ use cosmic::{
     },
 };
 use rfd::AsyncFileDialog;
-use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 pub struct ImageViewer {
     core: Core,
@@ -51,6 +53,8 @@ pub struct ImageViewer {
     wallpaper_dialog: Option<PathBuf>,
     available_outputs: Vec<String>,
     delete_dialog: Option<PathBuf>,
+    edit_state: EditState,
+    _save_dialog: Option<PathBuf>,
 }
 
 impl ImageViewer {
@@ -86,6 +90,33 @@ impl ImageViewer {
         } else {
             Task::none()
         }
+    }
+
+    fn reload_thumbnail(&mut self, path: PathBuf) -> Task<Action<Message>> {
+        // Remove from cache to force reload
+        self.cache.remove_thumbnail(&path);
+        self.cache.clear_pending_thumbnail(&path);
+
+        // Load fresh thumbnail
+        if self.cache.is_thumbnail_pending(&path) {
+            return Task::none();
+        }
+
+        self.cache.set_thumbnail_pending(path.clone());
+        let max_size = self.config.thumbnail_size.pixels();
+
+        cosmic::task::future(async move {
+            match image::load_thumbnail(path.clone(), max_size).await {
+                Ok(img) => Message::Image(ImageMessage::ThumbnailReady {
+                    path,
+                    handle: img.handle,
+                }),
+                Err(_) => Message::Image(ImageMessage::LoadFailed {
+                    path,
+                    error: "Failed to load thumbnail".to_string(),
+                }),
+            }
+        })
     }
 
     fn thumbnails_remaining(&self) -> usize {
@@ -138,8 +169,7 @@ impl ImageViewer {
         Task::batch(tasks)
     }
 
-    // Unused - kept for future smart preloading
-    #[allow(dead_code)]
+    // Preload all full images for better navigation performance
     fn preload_images(&mut self) -> Task<Action<Message>> {
         let mut tasks = Vec::new();
 
@@ -220,12 +250,79 @@ impl ImageViewer {
         let title = if let Some(path) = self.nav.current()
             && let Some(name) = path.file_name().and_then(|name| name.to_str())
         {
-            format!("{} - {}", name, fl!("app-title"))
+            if self.edit_state.is_modified {
+                format!("{} * - {}", name, fl!("app-title"))
+            } else {
+                format!("{} - {}", name, fl!("app-title"))
+            }
         } else {
             fl!("app-title")
         };
 
         self.set_window_title(title, self.core.main_window_id().unwrap())
+    }
+
+    fn reload_with_edits(&self) -> Task<Message> {
+        if let Some(original_path) = self.edit_state.original_path.as_ref() {
+            let path = original_path.clone();
+            let transforms = self.edit_state.transforms.clone();
+            let crop = self.edit_state.crop;
+
+            Task::perform(
+                async move {
+                    crate::edit::operations::apply_edits_to_image(&path, &transforms, crop).await
+                },
+                |result| match result {
+                    Ok((_, handle, width, height, path)) => {
+                        Message::Image(ImageMessage::Loaded {
+                            path,
+                            handle,
+                            width,
+                            height,
+                        })
+                    },
+                    Err(err) => Message::OpenError(Arc::new(format!("Failed to apply edits: {}", err)))
+                }
+            )
+        } else {
+            Task::none()
+        }
+    }
+
+    fn save_edited_image(&mut self, save_path: PathBuf) -> Task<Message> {
+        if let Some(original_path) = self.edit_state.original_path.as_ref() {
+            let original = original_path.clone();
+            let transforms = self.edit_state.transforms.clone();
+            let crop = self.edit_state.crop;
+            let result_path = save_path.clone();
+
+            Task::perform(
+                async move {
+                    // Load and apply all edits
+                    let result = crate::edit::operations::apply_edits_to_image(
+                        &original,
+                        &transforms,
+                        crop,
+                    ).await;
+
+                    match result {
+                        Ok((img, _, _, _, _)) => {
+                            crate::edit::operations::save_image(img, &save_path).await?;
+                            Ok(result_path)
+                        },
+                        Err(err) => Err(err),
+                    }
+                },
+                |result| match result {
+                    Ok(path) => {
+                        Message::Edit(EditMessage::SaveComplete(Ok(path)))
+                    },
+                    Err(err) => Message::Edit(EditMessage::SaveComplete(Err(err.to_string()))),
+                },
+            )
+        } else {
+            Task::none()
+        }
     }
 }
 
@@ -276,6 +373,8 @@ impl Application for ImageViewer {
             wallpaper_dialog: None,
             available_outputs: Vec::new(),
             delete_dialog: None,
+            edit_state: EditState::new(),
+            _save_dialog: None,
         };
 
         let startup_path = if let Some(path) = flags {
@@ -302,7 +401,16 @@ impl Application for ImageViewer {
     }
 
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        vec![crate::menu::menu_bar(&self.core, &self.key_binds, self.is_slideshow_active).into()]
+        let has_image = self.nav.current().is_some();
+        let is_modified = self.edit_state.is_modified;
+
+        vec![menu_bar(
+            &self.core,
+            &self.key_binds,
+            self.is_slideshow_active,
+            has_image,
+            is_modified
+        ).into()]
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -407,10 +515,12 @@ impl Application for ImageViewer {
                     self.is_slideshow_active = false;
                     if self.nav.is_selected() {
                         // Modal open: navigate images
+                        self.edit_state.reset();
                         self.nav.go_next();
                         self.image_state.zoom_fit(); // Reset to fit mode for new image
                         self.update_fit_zoom();
                         tasks.push(self.load_current_image());
+                        tasks.push(self.update_title().map(Action::from));
                     } else {
                         // Gallery view: move focus right
                         let total = self.nav.total();
@@ -432,10 +542,12 @@ impl Application for ImageViewer {
                 NavMessage::Prev => {
                     self.is_slideshow_active = false;
                     if self.nav.is_selected() {
+                        self.edit_state.reset();
                         self.nav.go_prev();
                         self.image_state.zoom_fit(); // Reset to fit mode for new image
                         self.update_fit_zoom();
                         tasks.push(self.load_current_image());
+                        tasks.push(self.update_title().map(Action::from));
                     } else {
                         // Gallery view: move focus left
                         let total = self.nav.total();
@@ -456,24 +568,30 @@ impl Application for ImageViewer {
                 }
                 NavMessage::First => {
                     self.is_slideshow_active = false;
+                    self.edit_state.reset();
                     self.nav.first();
                     self.image_state.zoom_fit(); // Reset to fit mode for new image
                     self.update_fit_zoom();
                     tasks.push(self.load_current_image());
+                    tasks.push(self.update_title().map(Action::from));
                 }
                 NavMessage::Last => {
                     self.is_slideshow_active = false;
+                    self.edit_state.reset();
                     self.nav.last();
                     self.image_state.zoom_fit(); // Reset to fit mode for new image
                     self.update_fit_zoom();
                     tasks.push(self.load_current_image());
+                    tasks.push(self.update_title().map(Action::from));
                 }
                 NavMessage::GoTo(idx) => {
                     self.is_slideshow_active = false;
+                    self.edit_state.reset();
                     self.nav.go_to(idx);
                     self.image_state.zoom_fit(); // Reset to fit mode for new image
                     self.update_fit_zoom();
                     tasks.push(self.load_current_image());
+                    tasks.push(self.update_title().map(Action::from));
                 }
                 NavMessage::GallerySelect(idx) => {
                     self.nav.select(idx);
@@ -507,7 +625,7 @@ impl Application for ImageViewer {
 
                     tasks.push(self.load_thumbnails());
                     tasks.push(self.load_current_image());
-                    // Don't preload all images upfront - load on demand instead
+                    tasks.push(self.preload_images());
                 }
                 NavMessage::DirectoryRefreshed { images } => {
                     let was_selected = self.nav.is_selected();
@@ -675,6 +793,150 @@ impl Application for ImageViewer {
                 }
                 ViewMessage::ImageEditEvent => {
                     // TODO: Add the image edit events
+                }
+            },
+            Message::Edit(edit_msg) => match edit_msg {
+                EditMessage::Rotate90 => {
+                    if let Some(current_path) = self.nav.current() {
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(current_path.clone());
+                        }
+
+                        self.edit_state.apply_transform(Transform::Rotate90);
+
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::Rotate180 => {
+                    if let Some(current_path) = self.nav.current() {
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(current_path.clone());
+                        }
+
+                        self.edit_state.apply_transform(Transform::Rotate180);
+
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::FlipHorizontal => {
+                    if let Some(current_path) = self.nav.current() {
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(current_path.clone());
+                        }
+
+                        self.edit_state.apply_transform(Transform::FlipHorizontal);
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::FlipVertical => {
+                    if let Some(current_path) = self.nav.current() {
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(current_path.clone());
+                        }
+
+                        self.edit_state.apply_transform(Transform::FlipVertical);
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::Save => {
+                    if self.edit_state.is_modified {
+                        if let Some(path) = self.edit_state.original_path.clone() {
+                            // Save and handle reload in SaveComplete
+                            tasks.push(self.save_edited_image(path).map(Action::from));
+                        }
+                    }
+                }
+                EditMessage::SaveAs => {
+                    // Allow SaveAs even without modifications - user may want to save in different format
+                    if let Some(current_path) = self.nav.current() {
+                        // Start editing if not already
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(current_path.clone());
+                        }
+
+                        tasks.push(Task::perform(
+                            async {
+                                AsyncFileDialog::new()
+                                    .set_title("Save Image As")
+                                    .add_filter("Images", &["png", "jpg", "jpeg", "webp", "bmp", "tiff"])
+                                    .save_file()
+                                    .await
+                            },
+                            |result| {
+                                if let Some(file) = result {
+                                    let path = file.path().to_path_buf();
+                                    Message::Edit(EditMessage::SaveComplete(Ok(path)))
+                                } else {
+                                    Message::Cancelled
+                                }
+                            },
+                        ).map(Action::from));
+                    }
+                }
+                EditMessage::SaveComplete(result) => {
+                    match result {
+                        Ok(path) => {
+                            if !path.as_os_str().is_empty() {
+                                let path_clone = path.clone();
+
+                                // Check if this is SaveAs (different path) or Save (same path)
+                                let is_save_as = if let Some(original_path) = self.edit_state.original_path.as_ref() {
+                                    path != *original_path
+                                } else {
+                                    false
+                                };
+
+                                // Clear caches for saved image
+                                self.cache.remove_full(&path_clone);
+
+                                // Reload the thumbnail from the saved file
+                                tasks.push(self.reload_thumbnail(path_clone.clone()).map(Action::from));
+
+                                // Reload the full image in background
+                                tasks.push(self.load_image(path_clone.clone()));
+
+                                // If SaveAs to a new file, check if it's in the current directory
+                                if is_save_as {
+                                    // Check if the saved file is in the current directory
+                                    if let Some(current_path) = self.nav.current() {
+                                        if let (Some(saved_parent), Some(current_parent)) =
+                                            (path_clone.parent(), current_path.parent()) {
+                                            if saved_parent == current_parent {
+                                                // Same directory - trigger refresh to show new file
+                                                tasks.push(self.reload_image_list());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            self.edit_state.reset();
+                            tasks.push(self.update_title().map(Action::from));
+                        },
+                        Err(err) => {
+                            tracing::error!("Save failed: {err}");
+                        }
+                    }
+                }
+                EditMessage::Undo => {
+                    if self.edit_state.undo() {
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::StartCrop => {
+                    // TODO: Impement crop UI
+                    self.edit_state.start_crop();
+                }
+                EditMessage::CancelCrop => {
+                    self.edit_state.cancel_crop();
+                }
+                EditMessage::ApplyCrop => {
+                    self.edit_state.apply_crop();
+                    tasks.push(self.reload_with_edits().map(Action::from));
                 }
             },
             Message::Settings(msg) => {
