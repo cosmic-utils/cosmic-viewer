@@ -3,7 +3,8 @@ use image::{DynamicImage, GenericImageView};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-use super::state::{CropRegion, Transform};
+use crate::widgets::CropRegion;
+use super::state::Transform;
 
 #[derive(Debug, Error)]
 pub enum EditError {

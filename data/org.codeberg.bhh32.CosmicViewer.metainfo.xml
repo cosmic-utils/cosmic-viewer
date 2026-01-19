@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.codeberg.bhh32.CosmicViewer</id>
+  <name>COSMIC Image Viewer</name>
+  <summary>A fast, private image viewer for the COSMIC desktop</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="org.codeberg.bhh32">
+    <name>Bryan Hyland</name>
+  </developer>
+  <description>
+    <p>
+      COSMIC Image Viewer is a fast, privacy-focused image viewer built for the COSMIC desktop environment.
+      It supports a wide range of image formats and provides features like gallery view, zoom, rotation, and more.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Gallery view with thumbnails</li>
+      <li>Single image view with zoom and pan</li>
+      <li>Image rotation and flipping</li>
+      <li>Fullscreen mode</li>
+      <li>Slideshow</li>
+      <li>Keyboard navigation</li>
+      <li>Recent folders</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.codeberg.bhh32.CosmicViewer.desktop</launchable>
+  <url type="homepage">https://codeberg.org/bhh32/cosmic-viewer</url>
+  <url type="bugtracker">https://codeberg.org/bhh32/cosmic-viewer/issues</url>
+  <url type="vcs-browser">https://codeberg.org/bhh32/cosmic-viewer</url>
+  <content_rating type="oars-1.1" />
+  <branding>
+    <color type="primary" scheme_preference="light">#f5f5f5</color>
+    <color type="primary" scheme_preference="dark">#1a1a2e</color>
+  </branding>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Gallery view showing image thumbnails</caption>
+      <image>https://codeberg.org/bhh32/cosmic-viewer/raw/branch/main/screenshots/gallery.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.2.0" date="2026-01-19">
+      <description>
+        <p>New features and improvements:</p>
+        <ul>
+          <li>Added Recent Folders submenu</li>
+          <li>Image rotation and flipping</li>
+          <li>Improved gallery view</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <categories>
+    <category>Graphics</category>
+    <category>Viewer</category>
+  </categories>
+  <keywords>
+    <keyword>image</keyword>
+    <keyword>viewer</keyword>
+    <keyword>photo</keyword>
+    <keyword>picture</keyword>
+    <keyword>gallery</keyword>
+    <keyword>cosmic</keyword>
+  </keywords>
+</component>

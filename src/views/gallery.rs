@@ -1,4 +1,5 @@
 use crate::{
+    edit::EditState,
     fl,
     image::{CachedImage, ImageCache},
     message::{Message, NavMessage, ViewMessage},
@@ -285,6 +286,7 @@ impl GalleryView {
         cache: &ImageCache,
         thumbnail_size: u32,
         image_state: &ImageViewState,
+        edit_state: &EditState,
     ) -> Element<'_, Message> {
         let spacing = theme::active().cosmic().spacing;
         let images = nav.images();
@@ -339,8 +341,9 @@ impl GalleryView {
             .height(Length::Fill)
             .into();
 
-        // If modal is open wrap with popover
-        if let Some(idx) = nav.index()
+        // If modal is open wrap with popover (but not when cropping - crop has its own overlay)
+        if !edit_state.is_cropping
+            && let Some(idx) = nav.index()
             && let Some(path) = images.get(idx)
         {
             // Use mouse-area to close the modal when the backdrop is clicked.

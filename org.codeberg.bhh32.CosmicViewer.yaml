@@ -1,0 +1,40 @@
+app-id: org.codeberg.bhh32.CosmicViewer
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: cosmic-viewer
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=home:ro
+  - --filesystem=xdg-pictures:ro
+  - --filesystem=/media:ro
+  - --filesystem=/run/media:ro
+  - --talk-name=org.freedesktop.FileManager1
+  - --talk-name=org.freedesktop.portal.*
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/cosmic-viewer/cargo
+    RUST_BACKTRACE: '1'
+
+modules:
+  - name: cosmic-viewer
+    buildsystem: simple
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --verbose
+      - install -Dm755 target/release/cosmic-viewer /app/bin/cosmic-viewer
+      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.desktop /app/share/applications/org.codeberg.bhh32.CosmicViewer.desktop
+      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.svg /app/share/icons/hicolor/scalable/apps/org.codeberg.bhh32.CosmicViewer.svg
+      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.metainfo.xml /app/share/metainfo/org.codeberg.bhh32.CosmicViewer.metainfo.xml
+    sources:
+      - type: dir
+        path: .
+      - cargo-sources.json

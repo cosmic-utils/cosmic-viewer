@@ -1,4 +1,5 @@
-use crate::message::{ContextPage, EditMessage, Message, NavMessage, ViewMessage};
+use crate::config::{SortMode, SortOrder};
+use crate::message::{ContextPage, EditMessage, Message, NavMessage, SettingsMessage, ViewMessage};
 use cosmic::{
     iced::keyboard::{Key, key::Named},
     widget::menu::{
@@ -37,9 +38,17 @@ pub enum MenuAction {
     Rotate180,
     FlipHorizontal,
     FlipVertical,
+    StartCrop,
     Save,
     SaveAs,
     Undo,
+    SortByName,
+    SortByDate,
+    SortBySize,
+    SortAscending,
+    SortDescending,
+    OpenRecentFolder(usize),
+    ClearRecentFolders,
 }
 
 impl MenuAction {
@@ -71,9 +80,21 @@ impl MenuAction {
             MenuAction::Rotate180 => Message::Edit(EditMessage::Rotate180),
             MenuAction::FlipHorizontal => Message::Edit(EditMessage::FlipHorizontal),
             MenuAction::FlipVertical => Message::Edit(EditMessage::FlipVertical),
+            MenuAction::StartCrop => Message::Edit(EditMessage::StartCrop),
             MenuAction::Save => Message::Edit(EditMessage::Save),
             MenuAction::SaveAs => Message::Edit(EditMessage::SaveAs),
             MenuAction::Undo => Message::Edit(EditMessage::Undo),
+            MenuAction::SortByName => Message::Settings(SettingsMessage::SortMode(SortMode::Name)),
+            MenuAction::SortByDate => Message::Settings(SettingsMessage::SortMode(SortMode::Date)),
+            MenuAction::SortBySize => Message::Settings(SettingsMessage::SortMode(SortMode::Size)),
+            MenuAction::SortAscending => {
+                Message::Settings(SettingsMessage::SortOrder(SortOrder::Ascending))
+            }
+            MenuAction::SortDescending => {
+                Message::Settings(SettingsMessage::SortOrder(SortOrder::Descending))
+            }
+            MenuAction::OpenRecentFolder(idx) => Message::OpenRecentFolder(idx),
+            MenuAction::ClearRecentFolders => Message::ClearRecentFolders,
         }
     }
 }
@@ -276,6 +297,14 @@ pub fn init_key_binds() -> HashMap<KeyBind, MenuAction> {
             key: Key::Character("r".into()),
         },
         MenuAction::Rotate180,
+    );
+
+    binds.insert(
+        KeyBind {
+            modifiers: vec![Modifier::Ctrl, Modifier::Shift],
+            key: Key::Character("x".into()),
+        },
+        MenuAction::StartCrop,
     );
 
     binds.insert(

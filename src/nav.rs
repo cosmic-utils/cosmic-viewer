@@ -1,3 +1,4 @@
+use crate::config::{SortMode, SortOrder};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -128,15 +129,25 @@ pub fn get_image_dir(path: &Path) -> Option<PathBuf> {
     }
 }
 
-pub async fn scan_dir(dir: &Path, include_hidden: bool) -> Vec<PathBuf> {
+pub async fn scan_dir(
+    dir: &Path,
+    include_hidden: bool,
+    sort_mode: SortMode,
+    sort_order: SortOrder,
+) -> Vec<PathBuf> {
     let dir = dir.to_path_buf();
 
-    spawn_blocking(move || scan_dir_sync(&dir, include_hidden))
+    spawn_blocking(move || scan_dir_sync(&dir, include_hidden, sort_mode, sort_order))
         .await
         .unwrap_or_default()
 }
 
-fn scan_dir_sync(dir: &Path, include_hidden: bool) -> Vec<PathBuf> {
+fn scan_dir_sync(
+    dir: &Path,
+    include_hidden: bool,
+    sort_mode: SortMode,
+    sort_order: SortOrder,
+) -> Vec<PathBuf> {
     let mut images: Vec<PathBuf> = fs::read_dir(dir)
         .into_iter()
         .flatten()
@@ -154,9 +165,32 @@ fn scan_dir_sync(dir: &Path, include_hidden: bool) -> Vec<PathBuf> {
         .collect();
 
     images.sort_by(|a, b| {
-        let a_name = a.file_name().and_then(|name| name.to_str()).unwrap_or("");
-        let b_name = b.file_name().and_then(|name| name.to_str()).unwrap_or("");
-        human_sort(a_name, b_name)
+        let ordering = match sort_mode {
+            SortMode::Name => {
+                let a_name = a.file_name().and_then(|name| name.to_str()).unwrap_or("");
+                let b_name = b.file_name().and_then(|name| name.to_str()).unwrap_or("");
+                human_sort(a_name, b_name)
+            }
+            SortMode::Date => {
+                let a_time = fs::metadata(a)
+                    .and_then(|m| m.modified())
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let b_time = fs::metadata(b)
+                    .and_then(|m| m.modified())
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                a_time.cmp(&b_time)
+            }
+            SortMode::Size => {
+                let a_size = fs::metadata(a).map(|m| m.len()).unwrap_or(0);
+                let b_size = fs::metadata(b).map(|m| m.len()).unwrap_or(0);
+                a_size.cmp(&b_size)
+            }
+        };
+
+        match sort_order {
+            SortOrder::Ascending => ordering,
+            SortOrder::Descending => ordering.reverse(),
+        }
     });
 
     images

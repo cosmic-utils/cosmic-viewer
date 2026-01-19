@@ -7,7 +7,12 @@ app-description = An image viewer made for COSMIC, but can be used anywhere.
 menu-file = File
 menu-open = Open
 menu-open-folder = Open Folder
+menu-recent-folders = Recent Folders
+menu-no-recent-folders = No recent folders
+menu-clear-recent = Clear Recent
 menu-set-wallpaper = Set as Wallpaper
+menu-save = Save
+menu-save-as = Save As...
 menu-delete = Delete
 menu-settings = Settings
 menu-quit = Quit
@@ -22,6 +27,12 @@ menu-fullscreen = Fullscreen
 menu-slideshow-start = Start Slideshow
 menu-slideshow-stop = Stop Slideshow
 menu-gallery = Gallery View
+menu-sort = Sort
+menu-sort-name = By Name
+menu-sort-date = By Date
+menu-sort-size = By Size
+menu-sort-ascending = Ascending
+menu-sort-descending = Descending
 
 # Menu - Edit
 menu-edit = Edit
@@ -30,8 +41,8 @@ menu-rotate-180 = Rotate 180°
 menu-flip-horizontal = Flip Horizontal
 menu-flip-vertical = Flip Vertical
 menu-crop = Crop
-menu-save = Save
-menu-save-as = Save As...
+crop-apply = Apply Crop
+crop-cancel = Cancel
 menu-undo = Undo
 
 # Menu - Navigate

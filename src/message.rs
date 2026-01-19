@@ -1,7 +1,7 @@
 use cosmic::widget::image::Handle;
 use std::{path::PathBuf, sync::Arc};
 
-pub use crate::key_binds::MenuAction;
+pub use crate::{key_binds::MenuAction, widgets::DragHandle};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WallpaperTarget {
@@ -33,6 +33,8 @@ pub enum Message {
     ToggleContextPage(ContextPage),
     OpenFileDialog,
     OpenFolderDialog,
+    OpenRecentFolder(usize),
+    ClearRecentFolders,
     Cancelled,
     OpenError(Arc<String>),
     FilesSelected(Vec<PathBuf>),
@@ -124,6 +126,8 @@ pub enum SettingsMessage {
     CacheSize(usize),
     RememberLastDir(bool),
     WallpaperBehavior(crate::config::WallpaperBehavior),
+    SortMode(crate::config::SortMode),
+    SortOrder(crate::config::SortOrder),
 }
 
 #[derive(Debug, Clone)]
@@ -135,6 +139,9 @@ pub enum EditMessage {
     StartCrop,
     CancelCrop,
     ApplyCrop,
+    CropDragStart { x: f32, y: f32, handle: DragHandle },
+    CropDragMove { x: f32, y: f32 },
+    CropDragEnd,
     Save,
     SaveAs,
     SaveComplete(Result<PathBuf, String>),

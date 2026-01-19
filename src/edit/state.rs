@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::widgets::{CropRegion, CropSelection};
+
 /// A transformation to an image
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Transform {
@@ -9,14 +11,6 @@ pub enum Transform {
     FlipVertical,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CropRegion {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
 #[derive(Debug, Clone)]
 pub struct EditState {
     pub original_path: Option<PathBuf>,
@@ -24,6 +18,7 @@ pub struct EditState {
     pub crop: Option<CropRegion>,
     pub is_modified: bool,
     pub is_cropping: bool,
+    pub crop_selection: CropSelection,
 }
 
 impl Default for EditState {
@@ -40,6 +35,7 @@ impl EditState {
             crop: None,
             is_modified: false,
             is_cropping: false,
+            crop_selection: CropSelection::new(),
         }
     }
 
@@ -49,6 +45,7 @@ impl EditState {
         self.crop = None;
         self.is_modified = false;
         self.is_cropping = false;
+        self.crop_selection.reset();
     }
 
     pub fn apply_transform(&mut self, transform: Transform) {
@@ -66,6 +63,7 @@ impl EditState {
         self.crop = None;
         self.is_modified = false;
         self.is_cropping = false;
+        self.crop_selection.reset();
     }
 
     pub fn reset(&mut self) {
@@ -79,11 +77,13 @@ impl EditState {
 
     pub fn start_crop(&mut self) {
         self.is_cropping = true;
+        self.crop_selection.reset();
     }
 
     pub fn cancel_crop(&mut self) {
         self.is_cropping = false;
         self.crop = None;
+        self.crop_selection.reset();
     }
 
     pub fn apply_crop(&mut self) {

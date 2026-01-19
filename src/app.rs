@@ -8,13 +8,13 @@ use crate::{
     key_binds::{self, MenuAction},
     menu::menu_bar,
     message::{
-        ContextPage, DeleteAction, EditMessage, ImageMessage, Message, NavMessage, SettingsMessage, ViewMessage,
+        ContextPage, DeleteAction, DragHandle, EditMessage, ImageMessage, Message, NavMessage,
+        SettingsMessage, ViewMessage,
     },
     nav::{self, NavState},
     views::{GalleryView, ImageViewState},
     watcher,
 };
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 use ashpd::{
     desktop::wallpaper::{SetOn, WallpaperRequest},
     url::Url,
@@ -36,6 +36,7 @@ use cosmic::{
     },
 };
 use rfd::AsyncFileDialog;
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
 
 pub struct ImageViewer {
     core: Core,
@@ -230,11 +231,23 @@ impl ImageViewer {
     fn scan_and_nav(&mut self, path: PathBuf) -> Task<Action<Message>> {
         let dir = nav::get_image_dir(&path);
         let include_hidden = self.config.show_hidden_files;
+        let sort_mode = self.config.sort_mode;
+        let sort_order = self.config.sort_order;
         let target = path.clone();
+
+        // Track folder in recent folders
+        if let Some(ref folder_dir) = dir
+            && let Some(folder_str) = folder_dir.to_str()
+        {
+            self.config.add_recent_folder(folder_str.to_string());
+            if let Some(ref handler) = self.config_handler {
+                let _ = self.config.write_entry(handler);
+            }
+        }
 
         cosmic::task::future(async move {
             let images = if let Some(dir) = dir {
-                nav::scan_dir(&dir, include_hidden).await
+                nav::scan_dir(&dir, include_hidden, sort_mode, sort_order).await
             } else {
                 Vec::new()
             };
@@ -245,6 +258,8 @@ impl ImageViewer {
 
     fn reload_image_list(&mut self) -> Task<Action<Message>> {
         let include_hidden = self.config.show_hidden_files;
+        let sort_mode = self.config.sort_mode;
+        let sort_order = self.config.sort_order;
 
         // If an image is selected, use its parent directory
         let dir_option: Option<PathBuf> = if let Some(current) = self.nav.current() {
@@ -257,7 +272,7 @@ impl ImageViewer {
 
         if let Some(dir) = dir_option {
             return cosmic::task::future(async move {
-                let images = nav::scan_dir(&dir, include_hidden).await;
+                let images = nav::scan_dir(&dir, include_hidden, sort_mode, sort_order).await;
                 Message::Nav(NavMessage::DirectoryRefreshed { images })
             });
         }
@@ -292,16 +307,16 @@ impl ImageViewer {
                     crate::edit::operations::apply_edits_to_image(&path, &transforms, crop).await
                 },
                 |result| match result {
-                    Ok((_, handle, width, height, path)) => {
-                        Message::Image(ImageMessage::Loaded {
-                            path,
-                            handle,
-                            width,
-                            height,
-                        })
-                    },
-                    Err(err) => Message::OpenError(Arc::new(format!("Failed to apply edits: {}", err)))
-                }
+                    Ok((_, handle, width, height, path)) => Message::Image(ImageMessage::Loaded {
+                        path,
+                        handle,
+                        width,
+                        height,
+                    }),
+                    Err(err) => {
+                        Message::OpenError(Arc::new(format!("Failed to apply edits: {}", err)))
+                    }
+                },
             )
         } else {
             Task::none()
@@ -318,24 +333,20 @@ impl ImageViewer {
             Task::perform(
                 async move {
                     // Load and apply all edits
-                    let result = crate::edit::operations::apply_edits_to_image(
-                        &original,
-                        &transforms,
-                        crop,
-                    ).await;
+                    let result =
+                        crate::edit::operations::apply_edits_to_image(&original, &transforms, crop)
+                            .await;
 
                     match result {
                         Ok((img, _, _, _, _)) => {
                             crate::edit::operations::save_image(img, &save_path).await?;
                             Ok(result_path)
-                        },
+                        }
                         Err(err) => Err(err),
                     }
                 },
                 |result| match result {
-                    Ok(path) => {
-                        Message::Edit(EditMessage::SaveComplete(Ok(path)))
-                    },
+                    Ok(path) => Message::Edit(EditMessage::SaveComplete(Ok(path))),
                     Err(err) => Message::Edit(EditMessage::SaveComplete(Err(err.to_string()))),
                 },
             )
@@ -420,16 +431,14 @@ impl Application for ImageViewer {
     }
 
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        let has_image = self.nav.current().is_some();
-        let is_modified = self.edit_state.is_modified;
-
-        vec![menu_bar(
-            &self.core,
-            &self.key_binds,
-            self.is_slideshow_active,
-            has_image,
-            is_modified
-        ).into()]
+        vec![
+            menu_bar(
+                &self.core,
+                &self.key_binds,
+                self.is_slideshow_active,
+                &self.config.recent_folders,
+            ),
+        ]
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -438,7 +447,31 @@ impl Application for ImageViewer {
             &self.cache,
             self.config.thumbnail_size.pixels(),
             &self.image_state,
+            &self.edit_state,
         );
+
+        // Overlay crop dialog if active (takes priority over other dialogs)
+        if self.edit_state.is_cropping {
+            if let Some(path) = self.nav.current() {
+                if let Some(cached) = self.cache.get_full(path) {
+                    let dialog = self.crop_dialog_view(&cached);
+
+                    // Backdrop that doesn't close - crop requires explicit Apply/Cancel
+                    let backdrop = cosmic::widget::mouse_area(
+                        cosmic::widget::container(cosmic::widget::Space::new(
+                            cosmic::iced::Length::Fill,
+                            cosmic::iced::Length::Fill,
+                        ))
+                        .width(cosmic::iced::Length::Fill)
+                        .height(cosmic::iced::Length::Fill)
+                        .class(cosmic::theme::Container::Transparent),
+                    )
+                    .on_press(Message::View(ViewMessage::ImageEditEvent)); // No-op, just captures clicks
+
+                    return cosmic::iced_widget::stack![gallery, backdrop, dialog].into();
+                }
+            }
+        }
 
         // Overlay wallpaper dialog if active
         if let Some(path) = &self.wallpaper_dialog {
@@ -862,22 +895,25 @@ impl Application for ImageViewer {
                             self.edit_state.start_editing(current_path.clone());
                         }
 
-                        tasks.push(Task::perform(
-                            async {
-                                AsyncFileDialog::new()
-                                    .set_title("Save Image As")
-                                    .save_file()
-                                    .await
-                            },
-                            |result| {
-                                if let Some(file) = result {
-                                    let path = file.path().to_path_buf();
-                                    Message::Edit(EditMessage::SaveComplete(Ok(path)))
-                                } else {
-                                    Message::Cancelled
-                                }
-                            },
-                        ).map(Action::from));
+                        tasks.push(
+                            Task::perform(
+                                async {
+                                    AsyncFileDialog::new()
+                                        .set_title("Save Image As")
+                                        .save_file()
+                                        .await
+                                },
+                                |result| {
+                                    if let Some(file) = result {
+                                        let path = file.path().to_path_buf();
+                                        Message::Edit(EditMessage::SaveComplete(Ok(path)))
+                                    } else {
+                                        Message::Cancelled
+                                    }
+                                },
+                            )
+                            .map(Action::from),
+                        );
                     }
                 }
                 EditMessage::SaveComplete(result) => {
@@ -887,7 +923,9 @@ impl Application for ImageViewer {
                                 let path_clone = path.clone();
 
                                 // Check if this is SaveAs (different path) or Save (same path)
-                                let is_save_as = if let Some(original_path) = self.edit_state.original_path.as_ref() {
+                                let is_save_as = if let Some(original_path) =
+                                    self.edit_state.original_path.as_ref()
+                                {
                                     path != *original_path
                                 } else {
                                     false
@@ -897,7 +935,9 @@ impl Application for ImageViewer {
                                 self.cache.remove_full(&path_clone);
 
                                 // Reload the thumbnail from the saved file
-                                tasks.push(self.reload_thumbnail(path_clone.clone()).map(Action::from));
+                                tasks.push(
+                                    self.reload_thumbnail(path_clone.clone()).map(Action::from),
+                                );
 
                                 // Reload the full image in background
                                 tasks.push(self.load_image(path_clone.clone()));
@@ -907,7 +947,8 @@ impl Application for ImageViewer {
                                     // Check if the saved file is in the current directory
                                     if let Some(current_path) = self.nav.current() {
                                         if let (Some(saved_parent), Some(current_parent)) =
-                                            (path_clone.parent(), current_path.parent()) {
+                                            (path_clone.parent(), current_path.parent())
+                                        {
                                             if saved_parent == current_parent {
                                                 // Same directory - trigger refresh to show new file
                                                 tasks.push(self.reload_image_list());
@@ -918,7 +959,7 @@ impl Application for ImageViewer {
                             }
                             self.edit_state.reset();
                             tasks.push(self.update_title().map(Action::from));
-                        },
+                        }
                         Err(err) => {
                             tracing::error!("Save failed: {err}");
                         }
@@ -931,15 +972,47 @@ impl Application for ImageViewer {
                     }
                 }
                 EditMessage::StartCrop => {
-                    // TODO: Impement crop UI
-                    self.edit_state.start_crop();
+                    if let Some(path) = self.nav.current() {
+                        if !self.edit_state.is_editing() {
+                            self.edit_state.start_editing(path.clone());
+                        }
+                        self.edit_state.start_crop();
+                    }
                 }
                 EditMessage::CancelCrop => {
                     self.edit_state.cancel_crop();
                 }
                 EditMessage::ApplyCrop => {
-                    self.edit_state.apply_crop();
-                    tasks.push(self.reload_with_edits().map(Action::from));
+                    if let Some(region) = self.edit_state.crop_selection.to_crop_region() {
+                        self.edit_state.set_crop(region);
+                        self.edit_state.apply_crop();
+                        tasks.push(self.reload_with_edits().map(Action::from));
+                        tasks.push(self.update_title().map(Action::from));
+                    }
+                }
+                EditMessage::CropDragStart { x, y, handle } => {
+                    if handle == DragHandle::None {
+                        self.edit_state.crop_selection.start_new_selection(x, y);
+                    } else {
+                        self.edit_state
+                            .crop_selection
+                            .start_handle_drag(handle, x, y);
+                    }
+                }
+                EditMessage::CropDragMove { x, y } => {
+                    if let Some(cached) =
+                        self.nav.current().and_then(|p| self.cache.get_full(&p))
+                    {
+                        self.edit_state.crop_selection.update_drag(
+                            x,
+                            y,
+                            cached.width as f32,
+                            cached.height as f32,
+                        );
+                    }
+                }
+                EditMessage::CropDragEnd => {
+                    self.edit_state.crop_selection.end_drag();
                 }
             },
             Message::Settings(msg) => {
@@ -978,6 +1051,16 @@ impl Application for ImageViewer {
                     }
                     SettingsMessage::WallpaperBehavior(behavior) => {
                         self.config.wallpaper_behavior = behavior
+                    }
+                    SettingsMessage::SortMode(mode) => {
+                        self.config.sort_mode = mode;
+                        // Reload the current directory with the new sort mode
+                        tasks.push(self.reload_image_list());
+                    }
+                    SettingsMessage::SortOrder(order) => {
+                        self.config.sort_order = order;
+                        // Reload the current directory with the new sort order
+                        tasks.push(self.reload_image_list());
                     }
                 }
 
@@ -1022,6 +1105,20 @@ impl Application for ImageViewer {
                         None => Message::Cancelled,
                     }
                 });
+            }
+            Message::OpenRecentFolder(idx) => {
+                if let Some(folder) = self.config.recent_folders.get(idx).cloned() {
+                    let path = PathBuf::from(folder);
+                    if path.exists() {
+                        tasks.push(self.scan_and_nav(path));
+                    }
+                }
+            }
+            Message::ClearRecentFolders => {
+                self.config.recent_folders.clear();
+                if let Some(ref handler) = self.config_handler {
+                    let _ = self.config.write_entry(handler);
+                }
             }
             Message::Cancelled => {}
             Message::OpenError(why) => eprintln!("{why}"),
@@ -1379,6 +1476,68 @@ impl ImageViewer {
         .height(Length::Fill)
         .align_x(cosmic::iced::alignment::Horizontal::Center)
         .align_y(cosmic::iced::alignment::Vertical::Center)
+        .into()
+    }
+
+    fn crop_dialog_view(&self, cached: &crate::image::CachedImage) -> Element<'_, Message> {
+        use cosmic::iced::Length;
+        use cosmic::widget::icon;
+        use crate::widgets::crop_widget;
+
+        let spacing = cosmic::theme::active().cosmic().spacing;
+
+        // Header with close button
+        let close_btn = button::icon(icon::from_name("window-close-symbolic"))
+            .on_press(Message::Edit(EditMessage::CancelCrop))
+            .padding(spacing.space_xs)
+            .class(cosmic::theme::Button::Destructive);
+
+        let header = cosmic::widget::row()
+            .push(cosmic::widget::horizontal_space())
+            .push(close_btn)
+            .width(Length::Fill)
+            .padding(spacing.space_xs);
+
+        // Self-contained crop widget that handles image rendering and all crop UI
+        let crop = crop_widget(
+            cached.handle.clone(),
+            cached.width,
+            cached.height,
+            &self.edit_state.crop_selection,
+        );
+
+        // Footer with Apply/Cancel buttons
+        let cancel_btn = button::standard(fl!("crop-cancel"))
+            .on_press(Message::Edit(EditMessage::CancelCrop));
+
+        let apply_btn = if self.edit_state.crop_selection.has_selection() {
+            button::suggested(fl!("crop-apply"))
+                .on_press(Message::Edit(EditMessage::ApplyCrop))
+        } else {
+            button::suggested(fl!("crop-apply"))
+        };
+
+        let footer = cosmic::widget::row()
+            .push(cosmic::widget::horizontal_space())
+            .push(cancel_btn)
+            .push(apply_btn)
+            .push(cosmic::widget::horizontal_space())
+            .spacing(spacing.space_s)
+            .width(Length::Fill)
+            .padding(spacing.space_xs);
+
+        // Full-screen layout - crop widget fills the middle and handles its own centering
+        cosmic::widget::container(
+            column()
+                .push(header)
+                .push(cosmic::Element::from(crop))
+                .push(footer)
+                .width(Length::Fill)
+                .height(Length::Fill),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .class(cosmic::theme::Container::Dialog)
         .into()
     }
 

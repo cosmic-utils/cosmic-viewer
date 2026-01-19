@@ -63,3 +63,7 @@ heif = ["libheif-rs"]
 lto = "thin"
 opt-level = 3
 strip = true
+
+# Remove this patch after upstream PR is merged
+[patch."https://github.com/pop-os/libcosmic.git"]
+libcosmic = { git = "https://github.com/bhh32/libcosmic.git", branch = "menu-item-width" }

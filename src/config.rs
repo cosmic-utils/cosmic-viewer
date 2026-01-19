@@ -28,6 +28,55 @@ impl fmt::Display for WallpaperBehavior {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum SortMode {
+    #[default]
+    Name,
+    Date,
+    Size,
+}
+
+impl SortMode {
+    pub const ALL: &'static [Self] = &[Self::Name, Self::Date, Self::Size];
+}
+
+impl fmt::Display for SortMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SortMode::Name => write!(f, "Name"),
+            SortMode::Date => write!(f, "Date"),
+            SortMode::Size => write!(f, "Size"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum SortOrder {
+    #[default]
+    Ascending,
+    Descending,
+}
+
+impl SortOrder {
+    pub const ALL: &'static [Self] = &[Self::Ascending, Self::Descending];
+
+    pub fn toggle(self) -> Self {
+        match self {
+            SortOrder::Ascending => SortOrder::Descending,
+            SortOrder::Descending => SortOrder::Ascending,
+        }
+    }
+}
+
+impl fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SortOrder::Ascending => write!(f, "Ascending"),
+            SortOrder::Descending => write!(f, "Descending"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ThumbnailSize {
     Small,
     #[default]
@@ -175,6 +224,9 @@ impl fmt::Display for AppTheme {
     }
 }
 
+/// Maximum number of recent folders to remember
+pub const MAX_RECENT_FOLDERS: usize = 10;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ViewerConfig {
     pub app_theme: AppTheme,
@@ -188,6 +240,9 @@ pub struct ViewerConfig {
     pub cache_size: usize,
     pub show_hidden_files: bool,
     pub wallpaper_behavior: WallpaperBehavior,
+    pub sort_mode: SortMode,
+    pub sort_order: SortOrder,
+    pub recent_folders: Vec<String>,
 }
 
 impl Default for ViewerConfig {
@@ -204,7 +259,24 @@ impl Default for ViewerConfig {
             cache_size: 20,
             show_hidden_files: false,
             wallpaper_behavior: WallpaperBehavior::default(),
+            sort_mode: SortMode::default(),
+            sort_order: SortOrder::default(),
+            recent_folders: Vec::new(),
         }
+    }
+}
+
+impl ViewerConfig {
+    /// Add a folder to the recent folders list.
+    /// The most recent folder is at index 0.
+    /// Duplicates are moved to the front.
+    pub fn add_recent_folder(&mut self, folder: String) {
+        // Remove if already exists (we'll add it to front)
+        self.recent_folders.retain(|f| f != &folder);
+        // Add to front
+        self.recent_folders.insert(0, folder);
+        // Trim to max size
+        self.recent_folders.truncate(MAX_RECENT_FOLDERS);
     }
 }
 
@@ -223,6 +295,9 @@ impl CosmicConfigEntry for ViewerConfig {
         config.set("cache_size", self.cache_size)?;
         config.set("show_hidden_files", self.show_hidden_files)?;
         config.set("wallpaper_behavior", self.wallpaper_behavior)?;
+        config.set("sort_mode", self.sort_mode)?;
+        config.set("sort_order", self.sort_order)?;
+        config.set("recent_folders", self.recent_folders.clone())?;
         Ok(())
     }
 
@@ -251,6 +326,9 @@ impl CosmicConfigEntry for ViewerConfig {
         get_field!("cache_size", cache_size, usize);
         get_field!("show_hidden_files", show_hidden_files, bool);
         get_field!("wallpaper_behavior", wallpaper_behavior, WallpaperBehavior);
+        get_field!("sort_mode", sort_mode, SortMode);
+        get_field!("sort_order", sort_order, SortOrder);
+        get_field!("recent_folders", recent_folders, Vec<String>);
 
         if errors.is_empty() {
             Ok(cfg)
@@ -287,6 +365,20 @@ impl CosmicConfigEntry for ViewerConfig {
                     Ok(val) => {
                         self.show_hidden_files = val;
                         updated.push("show_hidden_files");
+                    }
+                    Err(e) => errors.push(e),
+                },
+                "sort_mode" => match config.get::<SortMode>("sort_mode") {
+                    Ok(val) => {
+                        self.sort_mode = val;
+                        updated.push("sort_mode");
+                    }
+                    Err(e) => errors.push(e),
+                },
+                "sort_order" => match config.get::<SortOrder>("sort_order") {
+                    Ok(val) => {
+                        self.sort_order = val;
+                        updated.push("sort_order");
                     }
                     Err(e) => errors.push(e),
                 },
