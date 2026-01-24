@@ -1,4 +1,4 @@
-# COSMIC Viewer
+# Cupola
 A fast, native image viewer, built with the COSMIC desktop environment in mind, but works on all DE's.
 
 ## Features
@@ -32,8 +32,8 @@ A fast, native image viewer, built with the COSMIC desktop environment in mind, 
 
 ### From Source 
 ```bash
-git clone https://codeberg.org/bhh32/cosmic-viewer.git
-cd cosmic-viewer
+git clone https://codeberg.org/bhh32/cupola.git
+cd cupola
 sudo just install
 ```
 
@@ -56,13 +56,13 @@ sudo just install
 # CLI methods
 
 # Just open the viewer to the last directory selected
-cosmic-viewer
+cupola
 
 # Open the viewer to a directory
-cosmic-viewer ~/Pictures/wallpapers
+cupola ~/Pictures/wallpapers
 
 # Open the viewer to a specific image
-cosmic-viewer ~/Pictures/wallpapers/superman_wallpaper.png
+cupola ~/Pictures/wallpapers/superman_wallpaper.png
 ```
 
 If you have it installed, using the `just install` command, you use it just like you would any other image viewer application. If it's set as the default for opening images, it will start with an image opened from the file explorer application.
@@ -80,7 +80,7 @@ If you have it installed, using the `just install` command, you use it just like
 
 ## Configuration Files
 Settings are stored at the standard XDG config location:
-- ~/.config/cosmic/org.codeberg.bhh32.CosmicViewer/
+- ~/.config/cosmic/org.codeberg.bhh32.Cupola/
 
 ## Building for Development
 just build              # Debug build

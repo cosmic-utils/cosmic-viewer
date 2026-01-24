@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.codeberg.bhh32.CosmicViewer</id>
-  <name>COSMIC Image Viewer</name>
+  <id>org.codeberg.bhh32.Cupola</id>
+  <name>Cupola</name>
   <summary>A fast, private image viewer for the COSMIC desktop</summary>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
@@ -10,7 +10,7 @@
   </developer>
   <description>
     <p>
-      COSMIC Image Viewer is a fast, privacy-focused image viewer built for the COSMIC desktop environment.
+      Cupola is a fast, privacy-focused image viewer built for the COSMIC desktop environment.
       It supports a wide range of image formats and provides features like gallery view, zoom, rotation, and more.
     </p>
     <p>Features:</p>
@@ -24,10 +24,10 @@
       <li>Recent folders</li>
     </ul>
   </description>
-  <launchable type="desktop-id">org.codeberg.bhh32.CosmicViewer.desktop</launchable>
-  <url type="homepage">https://codeberg.org/bhh32/cosmic-viewer</url>
-  <url type="bugtracker">https://codeberg.org/bhh32/cosmic-viewer/issues</url>
-  <url type="vcs-browser">https://codeberg.org/bhh32/cosmic-viewer</url>
+  <launchable type="desktop-id">org.codeberg.bhh32.Cupola.desktop</launchable>
+  <url type="homepage">https://codeberg.org/bhh32/cupola</url>
+  <url type="bugtracker">https://codeberg.org/bhh32/cupola/issues</url>
+  <url type="vcs-browser">https://codeberg.org/bhh32/cupola</url>
   <content_rating type="oars-1.1" />
   <branding>
     <color type="primary" scheme_preference="light">#f5f5f5</color>
@@ -36,7 +36,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>Gallery view showing image thumbnails</caption>
-      <image>https://codeberg.org/bhh32/cosmic-viewer/raw/branch/main/screenshots/gallery.png</image>
+      <image>https://codeberg.org/bhh32/cupola/raw/branch/main/screenshots/gallery.png</image>
     </screenshot>
   </screenshots>
   <releases>

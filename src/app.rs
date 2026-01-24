@@ -59,7 +59,7 @@ pub struct ImageViewer {
 }
 
 impl ImageViewer {
-    pub const APP_ID: &'static str = "org.codeberg.bhh32.CosmicViewer";
+    pub const APP_ID: &'static str = "org.codeberg.bhh32.Cupola";
 
     fn load_image(&mut self, path: PathBuf) -> Task<Action<Message>> {
         if self.cache.get_full(&path).is_some() || self.cache.is_pending(&path) {
@@ -431,14 +431,12 @@ impl Application for ImageViewer {
     }
 
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        vec![
-            menu_bar(
-                &self.core,
-                &self.key_binds,
-                self.is_slideshow_active,
-                &self.config.recent_folders,
-            ),
-        ]
+        vec![menu_bar(
+            &self.core,
+            &self.key_binds,
+            self.is_slideshow_active,
+            &self.config.recent_folders,
+        )]
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
@@ -1000,9 +998,7 @@ impl Application for ImageViewer {
                     }
                 }
                 EditMessage::CropDragMove { x, y } => {
-                    if let Some(cached) =
-                        self.nav.current().and_then(|p| self.cache.get_full(&p))
-                    {
+                    if let Some(cached) = self.nav.current().and_then(|p| self.cache.get_full(&p)) {
                         self.edit_state.crop_selection.update_drag(
                             x,
                             y,
@@ -1480,9 +1476,9 @@ impl ImageViewer {
     }
 
     fn crop_dialog_view(&self, cached: &crate::image::CachedImage) -> Element<'_, Message> {
+        use crate::widgets::crop_widget;
         use cosmic::iced::Length;
         use cosmic::widget::icon;
-        use crate::widgets::crop_widget;
 
         let spacing = cosmic::theme::active().cosmic().spacing;
 
@@ -1507,12 +1503,11 @@ impl ImageViewer {
         );
 
         // Footer with Apply/Cancel buttons
-        let cancel_btn = button::standard(fl!("crop-cancel"))
-            .on_press(Message::Edit(EditMessage::CancelCrop));
+        let cancel_btn =
+            button::standard(fl!("crop-cancel")).on_press(Message::Edit(EditMessage::CancelCrop));
 
         let apply_btn = if self.edit_state.crop_selection.has_selection() {
-            button::suggested(fl!("crop-apply"))
-                .on_press(Message::Edit(EditMessage::ApplyCrop))
+            button::suggested(fl!("crop-apply")).on_press(Message::Edit(EditMessage::ApplyCrop))
         } else {
             button::suggested(fl!("crop-apply"))
         };

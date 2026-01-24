@@ -1,10 +1,10 @@
-app-id: org.codeberg.bhh32.CosmicViewer
+app-id: org.codeberg.bhh32.Cupola
 runtime: org.freedesktop.Platform
 runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
-command: cosmic-viewer
+command: cupola
 
 finish-args:
   - --share=ipc
@@ -21,19 +21,19 @@ finish-args:
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
   env:
-    CARGO_HOME: /run/build/cosmic-viewer/cargo
+    CARGO_HOME: /run/build/cupola/cargo
     RUST_BACKTRACE: '1'
 
 modules:
-  - name: cosmic-viewer
+  - name: cupola
     buildsystem: simple
     build-commands:
       - cargo --offline fetch --manifest-path Cargo.toml --verbose
       - cargo --offline build --release --verbose
-      - install -Dm755 target/release/cosmic-viewer /app/bin/cosmic-viewer
-      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.desktop /app/share/applications/org.codeberg.bhh32.CosmicViewer.desktop
-      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.svg /app/share/icons/hicolor/scalable/apps/org.codeberg.bhh32.CosmicViewer.svg
-      - install -Dm644 data/org.codeberg.bhh32.CosmicViewer.metainfo.xml /app/share/metainfo/org.codeberg.bhh32.CosmicViewer.metainfo.xml
+      - install -Dm755 target/release/cupola /app/bin/cupola
+      - install -Dm644 data/org.codeberg.bhh32.Cupola.desktop /app/share/applications/org.codeberg.bhh32.Cupola.desktop
+      - install -Dm644 data/org.codeberg.bhh32.Cupola.svg /app/share/icons/hicolor/scalable/apps/org.codeberg.bhh32.Cupola.svg
+      - install -Dm644 data/org.codeberg.bhh32.Cupola.metainfo.xml /app/share/metainfo/org.codeberg.bhh32.Cupola.metainfo.xml
     sources:
       - type: dir
         path: .

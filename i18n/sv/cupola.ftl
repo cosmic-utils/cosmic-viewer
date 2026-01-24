@@ -1,6 +1,6 @@
 # Program
-app-name = COSMIC Bildvisare
-app-title = COSMIC Bildvisare
+app-name = Cupola
+app-title = Cupola
 app-description = En bildvisare skapad för COSMIC, men kan användas var som helst.
 
 # Meny - Fil

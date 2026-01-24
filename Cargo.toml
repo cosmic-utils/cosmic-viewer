@@ -1,11 +1,11 @@
 [package]
-name = "cosmic-viewer"
+name = "cupola"
 version = "0.2.0"
 edition = "2024"
 license = "MIT"
 authors = ["Bryan Hyland <bryan.hyland32@gmail.com>"]
 description = "An image viewer written for the COSMIC Desktop, usable with all DEs."
-repository = "https://codeberg.org/bhh32/cosmic-viewer"
+repository = "https://codeberg.org/bhh32/cupola"
 
 [dependencies]
 # Internationalization

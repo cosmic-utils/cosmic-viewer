@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub const CONFIG_VERSION: u64 = 1;
-const APP_ID: &str = "org.codeberg.bhh32.CosmicViewer";
+const APP_ID: &str = "org.codeberg.bhh32.Cupola";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum WallpaperBehavior {

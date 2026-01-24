@@ -1,6 +1,6 @@
 # Application
-app-name = COSMIC Image Viewer
-app-title = COSMIC Image Viewer
+app-name = Cupola
+app-title = Cupola
 app-description = An image viewer made for COSMIC, but can be used anywhere.
 
 # Menu - File

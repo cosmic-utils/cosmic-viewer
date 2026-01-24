@@ -1246,38 +1246,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmic-viewer"
-version = "0.2.0"
-dependencies = [
- "ashpd 0.12.1",
- "dirs",
- "fast_image_resize",
- "i18n-embed",
- "i18n-embed-fl",
- "image",
- "imageproc",
- "kamadak-exif 0.6.1",
- "libcosmic",
- "libheif-rs",
- "lru 0.16.3",
- "notify",
- "once_cell",
- "palette",
- "rayon",
- "rfd 0.17.2",
- "rust-embed",
- "serde",
- "taffy",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "trash",
- "turbojpeg",
- "zune-image",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1357,6 +1325,38 @@ name = "ctor-lite"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f791803201ab277ace03903de1594460708d2d54df6053f2d9e82f592b19e3b"
+
+[[package]]
+name = "cupola"
+version = "0.2.0"
+dependencies = [
+ "ashpd 0.12.1",
+ "dirs",
+ "fast_image_resize",
+ "i18n-embed",
+ "i18n-embed-fl",
+ "image",
+ "imageproc",
+ "kamadak-exif 0.6.1",
+ "libcosmic",
+ "libheif-rs",
+ "lru 0.16.3",
+ "notify",
+ "once_cell",
+ "palette",
+ "rayon",
+ "rfd 0.17.2",
+ "rust-embed",
+ "serde",
+ "taffy",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "trash",
+ "turbojpeg",
+ "zune-image",
+]
 
 [[package]]
 name = "cursor-icon"

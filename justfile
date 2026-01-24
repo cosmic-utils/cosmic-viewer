@@ -58,19 +58,19 @@ rebuild: clean build-release
 
 # Install to ~/.cargo/bin
 install: build-release
-    sudo cp target/release/cosmic-viewer /usr/local/bin
+    sudo cp target/release/cupola /usr/local/bin
     sudo cp data/*.desktop /usr/share/applications
     sudo cp data/*.svg /usr/share/icons/hicolor/scalable/apps
 
 # Uninstall
 uninstall:
-    sudo rm /usr/local/bin/cosmic-viewer
-    sudo rm /usr/share/applications/*CosmicViewer.desktop
-    sudo rm /usr/share/icons/hicolor/scalable/apps/*CosmicViewer.svg
+    sudo rm /usr/local/bin/cupola
+    sudo rm /usr/share/applications/*Cupola.desktop
+    sudo rm /usr/share/icons/hicolor/scalable/apps/*Cupola.svg
 
 # Show binary size
 size: build-release
-    @ls -lh target/release/cosmic-viewer | awk '{ print $5 }'
+    @ls -lh target/release/cupola | awk '{ print $5 }'
 
 # Generate documentation and open it
 docs:
